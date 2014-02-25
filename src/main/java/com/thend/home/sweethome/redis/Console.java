@@ -9,14 +9,20 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 import org.apache.commons.lang.ArrayUtils;
 
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
+import redis.clients.jedis.JedisPoolConfig;
+import redis.clients.jedis.JedisShardInfo;
 import redis.clients.jedis.ShardedJedis;
+import redis.clients.jedis.ShardedJedisPool;
 
 public class Console {
+	
+	private JedisPoolConfig redisPoolConfig;
 	
 	private static List<String> redisHostList;
 	
@@ -24,7 +30,7 @@ public class Console {
 	
 	private static int configRedisPort;
 	
-	private SimpleShardedJedisPool shardedJedisPool;
+	private ShardedJedisPool shardedJedisPool;
 	
 	private JedisPool configJedisPool;
 	
@@ -43,12 +49,33 @@ public class Console {
 		redisHostList.add("123.58.176.107:6383");
 		redisHostList.add("123.58.176.107:6384");
 		configRedisHost = "123.58.176.106";
-		configRedisPort = 6379;
+		configRedisPort = 6383;
+	}
+	
+	private List<JedisShardInfo> parseShardInfo(List<String> shards) {
+		List<JedisShardInfo> result = new ArrayList<JedisShardInfo>();
+		for (String s : shards) {
+			String[] parts = s.split(":");
+			if (parts.length > 1) {
+				result.add(new JedisShardInfo(parts[0], Integer
+						.parseInt(parts[1])));
+			} else {
+				result.add(new JedisShardInfo(parts[0]));
+			}
+		}
+		return result;
 	}
 	
 	public void run() {
+		if(null == redisPoolConfig) {
+			redisPoolConfig = new JedisPoolConfig();
+			redisPoolConfig.setMaxActive(5000);
+			redisPoolConfig.setMaxIdle(1000);
+			redisPoolConfig.setMaxWait(2000);
+		}
 		if(null == shardedJedisPool) {
-			shardedJedisPool = new SimpleShardedJedisPool(redisHostList);
+			shardedJedisPool = new ShardedJedisPool(redisPoolConfig,parseShardInfo(redisHostList)
+					,Pattern.compile("#([0-9]+)#"));
 		}
 		BufferedReader reader = null;
 		try {
@@ -113,23 +140,15 @@ public class Console {
 		}
 	}
 	
-	public void runTest() {
-		if(null == shardedJedisPool) {
-			shardedJedisPool = new SimpleShardedJedisPool(redisHostList);
-		}
-		ShardedJedis shardedJedis = null;
-		try {
-			shardedJedis = shardedJedisPool.getResource();
-			Object value = shardedJedis.hgetAll("user#-9187505337059418980#");
-			System.out.println(Serializer.toJson(value, true));
-		} finally {
-			shardedJedisPool.returnResource(shardedJedis);
-		}
-	}
-	
 	public void runConfig() {
+		if(null == redisPoolConfig) {
+			redisPoolConfig = new JedisPoolConfig();
+			redisPoolConfig.setMaxActive(5000);
+			redisPoolConfig.setMaxIdle(1000);
+			redisPoolConfig.setMaxWait(2000);
+		}
 		if(null == configJedisPool) {
-			configJedisPool = new JedisPool(configRedisHost,configRedisPort);
+			configJedisPool = new JedisPool(redisPoolConfig,configRedisHost,configRedisPort);
 		}
 		BufferedReader reader = null;
 		try {
@@ -226,7 +245,6 @@ public class Console {
 				}
 			}
 		}
-//		new Console().runTest();
 	}
 	
 	private static void printUsage() {

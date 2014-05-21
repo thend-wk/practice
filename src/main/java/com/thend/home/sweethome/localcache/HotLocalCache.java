@@ -84,7 +84,7 @@ public class HotLocalCache {
         return cache.getSize();
     }
     
-    private static class CacheData {
+    private class CacheData {
         
         private Object value;
         

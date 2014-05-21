@@ -49,7 +49,7 @@ public class Console {
 		redisHostList.add("123.58.176.107:6383");
 		redisHostList.add("123.58.176.107:6384");
 		configRedisHost = "123.58.176.106";
-		configRedisPort = 6383;
+		configRedisPort = 6379;
 	}
 	
 	private List<JedisShardInfo> parseShardInfo(List<String> shards) {
@@ -105,14 +105,27 @@ public class Console {
 							} else {
 								if(paramLen > 1) {
 									Object[] args = ArrayUtils.subarray(params, 1, paramLen);
+									Object[] newArgs = new Object[paramLen - 1];
 									Class ownerClass = shardedJedis.getClass();
 								    Class[] argsClass = new Class[args.length];  
 								    for (int i = 0, j = args.length; i < j; i++) {
-								        argsClass[i] = args[i].getClass();  
-								    }  
+							    		String param = args[i].toString();
+								    	try {
+								    		if(param.contains("L")) {
+								    			argsClass[i] = long.class;
+								    			newArgs[i] = new Long(param.replace("L", ""));
+								    		} else {
+								    			newArgs[i] = new Integer(param);
+								    			argsClass[i] = int.class;
+								    		}
+								    	} catch (Exception e) {
+								    		argsClass[i] = args[i].getClass();
+								    		newArgs[i] = param;
+								    	}
+								    }
 								    try {
 								    	Method method = ownerClass.getMethod(cmd,argsClass);
-								    	Object value = method.invoke(shardedJedis, args);
+								    	Object value = method.invoke(shardedJedis, newArgs);
 								    	System.out.println(Serializer.toJson(value, true));
 								    } catch (Exception e) {
 								    	System.out.println("invalid method!");

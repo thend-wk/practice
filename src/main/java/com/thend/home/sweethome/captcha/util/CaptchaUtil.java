@@ -29,7 +29,9 @@ public final class CaptchaUtil
 	
 	static {
 		f_cn.add(new Font("宋体", 0, 24));
-	    f_en.add(new Font("Courier", 2, 40));
+	    f_en.add(new Font("Courier", Font.ITALIC, 40));
+	    f_en.add(new Font("TimesRoman", Font.PLAIN, 40));
+	    f_en.add(new Font("Arial", Font.BOLD, 40));
 	}
 
 //  public static void writeImage(HttpServletResponse response, BufferedImage bi)
@@ -86,30 +88,31 @@ public final class CaptchaUtil
       }
       else {
         GradiatedBackgroundProducer bgd = new GradiatedBackgroundProducer();
-        bgd.setFromColor(d_en[new Random().nextInt(d_en.length)]);
+        int colorIdx = new Random().nextInt(c_en.length);
+        bgd.setFromColor(c_en[colorIdx]);
 
         int viewTpye = new Random().nextInt(5);
 
         switch (viewTpye)
         {
         case 0:
-          captcha = new Captcha.Builder(imageWidth, imageHeight).addText(new DefaultTextProducer(characterNum, characterType), new DefaultWordRenderer(c_en[new Random().nextInt(c_en.length)], f_en)).addBackground(bgd).gimp(new DropShadowGimpyRenderer()).addBorder().addNoise().build();
+          captcha = new Captcha.Builder(imageWidth, imageHeight).addText(new DefaultTextProducer(characterNum, characterType), new DefaultWordRenderer(c_en[colorIdx], f_en)).addBackground(bgd).gimp(new DropShadowGimpyRenderer()).addBorder().addNoise().build();
 
           break;
         case 1:
-          captcha = new Captcha.Builder(imageWidth, imageHeight).addText(new DefaultTextProducer(characterNum, characterType), new DefaultWordRenderer(c_en[new Random().nextInt(c_en.length)], f_en)).addBackground(bgd).gimp(new DropShadowGimpyRenderer()).addBorder().build();
+          captcha = new Captcha.Builder(imageWidth, imageHeight).addText(new DefaultTextProducer(characterNum, characterType), new DefaultWordRenderer(c_en[colorIdx], f_en)).addBackground(bgd).gimp(new DropShadowGimpyRenderer()).addBorder().build();
 
           break;
         case 2:
-          captcha = new Captcha.Builder(imageWidth, imageHeight).addText(new DefaultTextProducer(characterNum, characterType), new DefaultWordRenderer(c_en[new Random().nextInt(c_en.length)], f_en)).addBackground(bgd).addBorder().addNoise().gimp().build();
+          captcha = new Captcha.Builder(imageWidth, imageHeight).addText(new DefaultTextProducer(characterNum, characterType), new DefaultWordRenderer(c_en[colorIdx], f_en)).addBackground(bgd).addBorder().addNoise().gimp().build();
 
           break;
         case 3:
-          captcha = new Captcha.Builder(imageWidth, imageHeight).addText(new DefaultTextProducer(characterNum, characterType), new DefaultWordRenderer(c_en[new Random().nextInt(c_en.length)], f_en)).addBackground(bgd).addBorder().addNoise(new StraightLineNoiseProducer()).gimp().build();
+          captcha = new Captcha.Builder(imageWidth, imageHeight).addText(new DefaultTextProducer(characterNum, characterType), new DefaultWordRenderer(c_en[colorIdx], f_en)).addBackground(bgd).addBorder().addNoise().gimp().build();
 
           break;
         default:
-          captcha = new Captcha.Builder(imageWidth, imageHeight).addText(new DefaultTextProducer(characterNum, characterType), new DefaultWordRenderer(c_en[new Random().nextInt(c_en.length)], f_en)).addBackground(bgd).gimp(new DropShadowGimpyRenderer()).addBorder().addNoise(new StraightLineNoiseProducer()).build();
+          captcha = new Captcha.Builder(imageWidth, imageHeight).addText(new DefaultTextProducer(characterNum, characterType), new DefaultWordRenderer(c_en[colorIdx], f_en)).addBackground(bgd).gimp(new DropShadowGimpyRenderer()).addBorder().addNoise().build();
         }
       }
     }
@@ -118,11 +121,5 @@ public final class CaptchaUtil
       e.printStackTrace();
     }
     return captcha;
-  }
-
-  static
-  {
-    f_cn.add(new Font("宋体", 0, 24));
-    f_en.add(new Font("Courier", 2, 40));
   }
 }

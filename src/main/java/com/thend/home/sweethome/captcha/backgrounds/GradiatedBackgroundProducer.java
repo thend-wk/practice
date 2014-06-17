@@ -10,6 +10,7 @@ import java.awt.image.BufferedImage;
 public class GradiatedBackgroundProducer
   implements BackgroundProducer
 {
+	private static final int delta = 40;
   private Color _fromColor;
   private Color _toColor;
 
@@ -27,8 +28,28 @@ public class GradiatedBackgroundProducer
     RenderingHints hints = new RenderingHints(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
     g.setRenderingHints(hints);
-
-    GradientPaint ytow = new GradientPaint(0.0F, 0.0F, this._fromColor, width, height, this._toColor);
+    System.out.println(_fromColor.getRed() + " " + _fromColor.getGreen() + " " + _fromColor.getBlue());
+    int red = _fromColor.getRed();
+    if(red == 0) {
+    	red = red + delta;
+    } else {
+    	red = red - delta;
+    }
+    int green = _fromColor.getGreen();
+    if(green == 0) {
+    	green = green + delta;
+    } else {
+    	green = green - delta;
+    }
+    int blue = _fromColor.getBlue();
+    if(blue == 0) {
+    	blue = blue + delta;
+    } else {
+    	blue = blue - delta;
+    }
+    System.out.print(red + " " + green + " " + blue);
+    Color colorFrom = new Color(red, green, blue);
+    GradientPaint ytow = new GradientPaint(0.0F, 0.0F, colorFrom, width, height, this._toColor);
 
     g.setPaint(ytow);
 

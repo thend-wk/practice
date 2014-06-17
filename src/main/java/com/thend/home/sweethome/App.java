@@ -1,16 +1,16 @@
 package com.thend.home.sweethome;
 
 import java.io.File;
-import java.io.UnsupportedEncodingException;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.util.Iterator;
 import java.util.List;
-
-import javax.imageio.ImageIO;
 
 import org.apache.commons.configuration.Configuration;
 import org.apache.commons.configuration.XMLConfiguration;
 import org.apache.commons.configuration.tree.xpath.XPathExpressionEngine;
 
+import com.thend.home.sweethome.blowfish.BlowFish;
 import com.thend.home.sweethome.captcha.Captcha;
 import com.thend.home.sweethome.captcha.util.CaptchaUtil;
 import com.thend.home.sweethome.config.ConfigUtils;
@@ -32,9 +32,10 @@ public class App
 //        } catch (LogicException e){
 //        	System.out.println(e.getErrorCode() + ":" + e.getMessage());
 //        }
-//        app.captcha();
+        app.captcha();
 //        app.xmlConfig();
-        app.genIDTest("carrollwk@yahoo.com.cn");
+//        app.genIDTest("carrollwk@yahoo.com.cn");
+//        app.blowfish();
     }
     
     public void test(boolean b) throws LogicException {
@@ -49,12 +50,13 @@ public class App
     }
     
     public void captcha() {
-    	Captcha captcha = CaptchaUtil.drawImage(1, 6, 150, 50);
+    	Captcha captcha = CaptchaUtil.drawImage(1, 6, 120, 50);
         String key = captcha.getAnswer();
         System.out.println("-------------key-------------" + key);
-		try {
-			ImageIO.write(captcha.getImage(), "jpeg", new File("pic.jpg"));
-		} catch (Exception e) {
+        
+        try {
+			CaptchaUtil.writeImage(new FileOutputStream(new File("pic.jpg")), captcha.getImage());
+		} catch (FileNotFoundException e) {
 			e.printStackTrace();
 		}
     }
@@ -99,6 +101,15 @@ public class App
     
     public void genIDTest(String email) {
 		System.out.println(IDUtils.genID(email));
+    }
+    
+    public void blowfish() {
+		String token = "429927b290452fecc49d61effa485698";
+		BlowFish bf = new BlowFish("thend");
+		String encodedStr = bf.encryptString(token);
+		System.out.println(encodedStr);
+		String ori = bf.decryptString(encodedStr);
+		System.out.println(ori);
     }
     
 }

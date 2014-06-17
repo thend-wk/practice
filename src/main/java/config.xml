@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<config>
+	<services>
+		<group name="central">
+			<hosts>
+				<host>http://liveshow-i01:8080</host>
+			</hosts>
+			<functions>
+				<function name="heartbeat" path="/hostserver/register.do" />
+				<function name="delete" path="/hostserver/delete.do"/>
+				<function name="register_user" path="/hostserver/recordUser.do" />
+				<function name="remove_user" path="/hostserver/removeUser.do" />
+				<function name="kick_user" path="/hostserver/kickUser.do" />
+				<function name="online_broadcast" path="/message/dispatchOnline.do" />
+				<function name="room_broadcast" path="/message/dispatchRoom.do" />
+				<function name="to_single_user" path="/message/dispatchSingle.do" />
+			</functions>
+		</group>
+		<group name="logic">
+			<hosts>
+				<host>http://liveshow-i01:8280</host>
+			</hosts>
+			<functions>
+				<function name="room_enter" path="/room/enter.do" />
+				<function name="room_exit" path="/room/exit.do" />
+				<function name="room_forceQuit" path="/room/forceQuit.do" />
+				<function name="room_kick" path="/room/kick.do" />
+				<function name="room_gag" path="/room/gag.do" />
+				<function name="room_update" path="/room/update.do" />
+				<function name="room_locate" path="/room/locate.do" />
+				<function name="room_count" path="/room/count.do" />
+				<function name="room_vips" path="/room/vipUsers.do" />
+				<function name="room_gaggedList" path="/room/listGaggedUsers.do" />
+				<function name="room_set_effect_level" path="/room/setEffectLevel.do"/>
+				<function name="room_forbid_live" path="/room/forbidLive.do"/>
+				<function name="room_unban_live" path="/room/unbanLive.do"/>
+				<function name="chat_roomBroadcast" path="/chat/roomBroadcast.do" />
+				<function name="chat_onlineBroadcast" path="/chat/onlineBroadcast.do" />
+				<function name="chat_toSingleUser" path="/chat/toSingleUser.do" />
+				<function name="gift_give" path="/gift/give.do"/>
+				<function name="free_reward" path="/free/reward.do"/>
+				<function name="user_info" path="/user/info.do"/>
+				<function name="user_edit" path="/user/edit.do"/>
+				<function name="user_validate_nick" path="/user/validateNick.do"/>
+				<function name="user_edit_nick" path="/user/editNick.do"/>
+				<function name="gift_list" path="/gift/list.do"/>
+				<function name="contribution_weekly" path="/contribution/getWeeklyRank.do"/>
+				<function name="contribution_current" path="/contribution/getCurrentRank.do"/>
+				<function name="free_give" path="/free/give.do"/>
+				<function name="sofa_take" path="/sofa/take.do"/>
+				<function name="user_list" path="/room/userlist.do"/>
+				<function name="song_request" path="/song/request.do"/>
+				<function name="song_accept" path="/song/accept.do"/>
+				<function name="song_accept_all" path="/song/acceptAll.do"/>
+				<function name="song_refuse" path="/song/refuse.do"/>
+				<function name="song_refuse_all" path="/song/refuseAll.do"/>
+				<function name="song_list" path="/song/list.do"/>
+				<function name="song_forbid_order" path="/song/forbid.do"/>
+				<function name="seat_take" path="/seat/take.do"/>
+				<function name="seat_list" path="/seat/list.do"/>
+				<function name="parking_list" path="/parking/list.do"/>
+				<function name="manager_approve" path="/roomManager/approve.do"/>
+				<function name="manager_unapprove" path="/roomManager/unapprove.do"/>
+				<function name="manager_list" path="/roomManager/list.do"/>
+				<function name="user_follow" path="/user/follow.do"/>
+				<function name="user_unfollow" path="/user/unfollow.do"/>
+				<function name="user_block" path="/user/block.do"/>
+				<function name="user_unblock" path="/user/unblock.do"/>
+				<function name="user_sendMsg" path="/user/message/send.do"/>
+				<function name="gift_package" path="/gift/package.do"/>
+				<function name="song_order_list" path="/song/orderList.do"/>
+				<function name="rookie_guide" path="/user/rookieGuide.do"/>
+				<function name="chat_fly" path="/chat/roomFly.do" />
+				<function name="activity_index" path="/activity/index.do"/>
+				<function name="guess_start" path="/activity/startGuess.do"/>
+				<function name="guess_list" path="/activity/guessList.do"/>
+				<function name="sofa_king_create" path="/event/createSofaKing.do" />
+				<function name="sofa_king_take" path="/event/takeSofaKing.do" />
+				<function name="sofa_king_ques" path="/event/quesSofaKing.do" />
+				<function name="sofa_king_board" path="/event/sofaKingBoard.do" />
+				<function name="sofa_king_answer" path="/event/answerSofaKing.do" />
+				<function name="sofa_king_giveup" path="/event/giveUpQuesSofaKing.do" />
+			</functions>
+		</group>
+	</services>
+</config>

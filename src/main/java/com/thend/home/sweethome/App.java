@@ -111,5 +111,4 @@ public class App
 		String ori = bf.decryptString(encodedStr);
 		System.out.println(ori);
     }
-    
 }

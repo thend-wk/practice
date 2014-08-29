@@ -3,12 +3,19 @@ package com.thend.home.sweethome;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.Iterator;
 import java.util.List;
 
 import org.apache.commons.configuration.Configuration;
 import org.apache.commons.configuration.XMLConfiguration;
 import org.apache.commons.configuration.tree.xpath.XPathExpressionEngine;
+import org.apache.commons.io.FileUtils;
+import org.apache.http.entity.mime.HttpMultipartMode;
+import org.apache.http.entity.mime.MultipartEntityBuilder;
+import org.apache.http.entity.mime.content.ContentBody;
+import org.apache.http.entity.mime.content.FileBody;
 
 import com.thend.home.sweethome.blowfish.BlowFish;
 import com.thend.home.sweethome.captcha.Captcha;
@@ -16,6 +23,7 @@ import com.thend.home.sweethome.captcha.util.CaptchaUtil;
 import com.thend.home.sweethome.config.ConfigUtils;
 import com.thend.home.sweethome.exception.LogicException;
 import com.thend.home.sweethome.exception.LogicException.LogicExpStatus;
+import com.thend.home.sweethome.httpclient.HttpClientUtil;
 import com.thend.home.sweethome.md5.IDUtils;
 
 /**
@@ -32,10 +40,11 @@ public class App
 //        } catch (LogicException e){
 //        	System.out.println(e.getErrorCode() + ":" + e.getMessage());
 //        }
-        app.captcha();
+//        app.captcha();
 //        app.xmlConfig();
 //        app.genIDTest("carrollwk@yahoo.com.cn");
 //        app.blowfish();
+        app.updateCover();
     }
     
     public void test(boolean b) throws LogicException {
@@ -112,4 +121,16 @@ public class App
 		System.out.println(ori);
     }
     
+    public void updateCover() {
+	  String url = "http://localhost:8280/updatecover";
+      MultipartEntityBuilder builder = MultipartEntityBuilder.create();
+      builder.setMode(HttpMultipartMode.BROWSER_COMPATIBLE);
+      builder.setCharset(Charset.forName("utf-8"));
+      builder.addTextBody("roomId", "100015");
+      builder.addTextBody("iscover", "1");
+//      builder.addBinaryBody("file", new File("obama.jpg"));
+      builder.addPart("file", new FileBody(new File("obama.jpg")));
+	  String ret = HttpClientUtil.getInstance().execute(url, builder.build());
+      System.out.println(ret);
+    }
 }

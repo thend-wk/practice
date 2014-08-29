@@ -3,7 +3,6 @@ package com.thend.home.sweethome;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
-import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.Iterator;
 import java.util.List;
@@ -11,10 +10,8 @@ import java.util.List;
 import org.apache.commons.configuration.Configuration;
 import org.apache.commons.configuration.XMLConfiguration;
 import org.apache.commons.configuration.tree.xpath.XPathExpressionEngine;
-import org.apache.commons.io.FileUtils;
 import org.apache.http.entity.mime.HttpMultipartMode;
 import org.apache.http.entity.mime.MultipartEntityBuilder;
-import org.apache.http.entity.mime.content.ContentBody;
 import org.apache.http.entity.mime.content.FileBody;
 
 import com.thend.home.sweethome.blowfish.BlowFish;
@@ -45,6 +42,10 @@ public class App
 //        app.genIDTest("carrollwk@yahoo.com.cn");
 //        app.blowfish();
         app.updateCover();
+        app.captcha();
+//        app.xmlConfig();
+//        app.genIDTest("carrollwk@yahoo.com.cn");
+//        app.blowfish();
     }
     
     public void test(boolean b) throws LogicException {

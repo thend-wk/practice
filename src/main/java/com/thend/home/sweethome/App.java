@@ -4,20 +4,19 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.nio.charset.Charset;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
 import org.apache.commons.configuration.Configuration;
 import org.apache.commons.configuration.XMLConfiguration;
 import org.apache.commons.configuration.tree.xpath.XPathExpressionEngine;
-import org.apache.http.entity.mime.HttpMultipartMode;
-import org.apache.http.entity.mime.MultipartEntityBuilder;
-import org.apache.http.entity.mime.content.FileBody;
 
 import com.thend.home.sweethome.blowfish.BlowFish;
 import com.thend.home.sweethome.captcha.Captcha;
 import com.thend.home.sweethome.captcha.util.CaptchaUtil;
 import com.thend.home.sweethome.config.ConfigUtils;
+import com.thend.home.sweethome.consistent.DBUtil;
 import com.thend.home.sweethome.exception.LogicException;
 import com.thend.home.sweethome.exception.LogicException.LogicExpStatus;
 import com.thend.home.sweethome.httpclient.HttpClientUtil;
@@ -41,11 +40,26 @@ public class App
 //        app.xmlConfig();
 //        app.genIDTest("carrollwk@yahoo.com.cn");
 //        app.blowfish();
-        app.updateCover();
-        app.captcha();
+//        app.updateCover();
+//        app.captcha();
 //        app.xmlConfig();
 //        app.genIDTest("carrollwk@yahoo.com.cn");
 //        app.blowfish();
+        app.hash();
+    }
+    
+    public void hash() {
+    	List<String> keys = new ArrayList<String>();
+    	keys.add("feed001");
+    	keys.add("feed002");
+    	keys.add("feed003");
+    	keys.add("feed004");
+    	keys.add("feed005");
+    	keys.add("feed006");
+    	DBUtil.initConstHash(keys);
+    	for(int i=0;i<10;i++) {
+    		System.out.println(DBUtil.getDistKey(i));
+    	}
     }
     
     public void test(boolean b) throws LogicException {

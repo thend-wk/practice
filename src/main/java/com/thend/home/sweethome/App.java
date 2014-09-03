@@ -3,7 +3,6 @@ package com.thend.home.sweethome;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
-import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -11,9 +10,6 @@ import java.util.List;
 import org.apache.commons.configuration.Configuration;
 import org.apache.commons.configuration.XMLConfiguration;
 import org.apache.commons.configuration.tree.xpath.XPathExpressionEngine;
-import org.apache.http.entity.mime.HttpMultipartMode;
-import org.apache.http.entity.mime.MultipartEntityBuilder;
-import org.apache.http.entity.mime.content.FileBody;
 
 import com.thend.home.sweethome.blowfish.BlowFish;
 import com.thend.home.sweethome.captcha.Captcha;
@@ -22,7 +18,6 @@ import com.thend.home.sweethome.config.ConfigUtils;
 import com.thend.home.sweethome.consistent.DBUtil;
 import com.thend.home.sweethome.exception.LogicException;
 import com.thend.home.sweethome.exception.LogicException.LogicExpStatus;
-import com.thend.home.sweethome.httpclient.HttpClientUtil;
 import com.thend.home.sweethome.md5.IDUtils;
 
 /**
@@ -49,10 +44,10 @@ public class App
 //        app.genIDTest("carrollwk@yahoo.com.cn");
 //        app.blowfish();
 //        app.constHash();
-        app.fairHash();
+        app.dbHash();
     }
     
-    public void constHash() {
+    public void dbHash() {
     	List<String> keys = new ArrayList<String>();
     	keys.add("feed001");
     	keys.add("feed002");
@@ -60,23 +55,10 @@ public class App
     	keys.add("feed004");
     	keys.add("feed005");
     	keys.add("feed006");
-    	DBUtil.initConstHash(keys);
-    	for(int i=0;i<10;i++) {
-    		System.out.println(DBUtil.getConstDistKey(i));
+    	DBUtil.initDBHash(keys);
+    	for(int i=0;i<100;i++) {
+    		System.out.println(DBUtil.getDistKey(i));
     	}
-    }
-    
-    public void fairHash() {
-    	List<String> keys = new ArrayList<String>();
-    	keys.add("feed001");
-    	keys.add("feed002");
-    	keys.add("feed003");
-    	keys.add("feed004");
-    	keys.add("feed005");
-    	keys.add("feed006");
-    	DBUtil.initFairHash(keys);
-//    	DBUtil.printFairHash();
-    	System.out.println(DBUtil.getFairDistKey(-7989990424901016094L));
     }
     
     public void test(boolean b) throws LogicException {
@@ -153,16 +135,16 @@ public class App
 		System.out.println(ori);
     }
     
-    public void updateCover() {
-	  String url = "http://localhost:8280/updatecover";
-      MultipartEntityBuilder builder = MultipartEntityBuilder.create();
-      builder.setMode(HttpMultipartMode.BROWSER_COMPATIBLE);
-      builder.setCharset(Charset.forName("utf-8"));
-      builder.addTextBody("roomId", "100015");
-      builder.addTextBody("iscover", "1");
-//      builder.addBinaryBody("file", new File("obama.jpg"));
-      builder.addPart("file", new FileBody(new File("obama.jpg")));
-	  String ret = HttpClientUtil.getInstance().execute(url, builder.build());
-      System.out.println(ret);
-    }
+//    public void updateCover() {
+//	  String url = "http://localhost:8280/updatecover";
+//      MultipartEntityBuilder builder = MultipartEntityBuilder.create();
+//      builder.setMode(HttpMultipartMode.BROWSER_COMPATIBLE);
+//      builder.setCharset(Charset.forName("utf-8"));
+//      builder.addTextBody("roomId", "100015");
+//      builder.addTextBody("iscover", "1");
+////      builder.addBinaryBody("file", new File("obama.jpg"));
+//      builder.addPart("file", new FileBody(new File("obama.jpg")));
+//	  String ret = HttpClientUtil.getInstance().execute(url, builder.build());
+//      System.out.println(ret);
+//    }
 }

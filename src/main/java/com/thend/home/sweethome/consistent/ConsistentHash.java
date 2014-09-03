@@ -11,7 +11,7 @@ import java.util.TreeMap;
  */
 public class ConsistentHash {
 
-	private TreeMap<Long, String> keysMap;
+	private TreeMap<Long, Integer> keysMap;
 
 	/**
 	 * 构造函数,指定需要散列的键值以及虚拟节点数
@@ -19,11 +19,11 @@ public class ConsistentHash {
 	 * @param keys
 	 * @param virtualSize
 	 */
-	public ConsistentHash(Iterable<String> keys, int virtualSize) {
-		keysMap = new TreeMap<Long, String>();
-		for (String key : keys) {
+	public ConsistentHash(Iterable<Integer> keys, int virtualSize) {
+		keysMap = new TreeMap<Long, Integer>();
+		for (int key : keys) {
 			for (int i = 0; i < virtualSize / 4; i++) {
-				byte[] digest = md5(key + i);
+				byte[] digest = md5(key + "-" + i);
 				for (int h = 0; h < 4; h++) {
 					long m = hash(digest, h);
 					keysMap.put(m, key);
@@ -38,7 +38,7 @@ public class ConsistentHash {
 	 * @param data
 	 * @return
 	 */
-	public String getRealKey(String data) {
+	public int getRealKey(String data) {
 		byte[] digest = md5(data);
 		Long key = hash(digest, 0);
 		if (!keysMap.containsKey(key)) {

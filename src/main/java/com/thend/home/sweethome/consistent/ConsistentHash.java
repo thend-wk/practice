@@ -4,7 +4,7 @@ import java.security.MessageDigest;
 import java.util.TreeMap;
 
 /**
- * 一致性哈希工具类
+ * 一致性哈希
  * 
  * @author wangkai
  * 

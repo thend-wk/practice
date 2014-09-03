@@ -11,6 +11,9 @@ import java.util.List;
 import org.apache.commons.configuration.Configuration;
 import org.apache.commons.configuration.XMLConfiguration;
 import org.apache.commons.configuration.tree.xpath.XPathExpressionEngine;
+import org.apache.http.entity.mime.HttpMultipartMode;
+import org.apache.http.entity.mime.MultipartEntityBuilder;
+import org.apache.http.entity.mime.content.FileBody;
 
 import com.thend.home.sweethome.blowfish.BlowFish;
 import com.thend.home.sweethome.captcha.Captcha;
@@ -45,10 +48,11 @@ public class App
 //        app.xmlConfig();
 //        app.genIDTest("carrollwk@yahoo.com.cn");
 //        app.blowfish();
-        app.hash();
+//        app.constHash();
+        app.fairHash();
     }
     
-    public void hash() {
+    public void constHash() {
     	List<String> keys = new ArrayList<String>();
     	keys.add("feed001");
     	keys.add("feed002");
@@ -58,8 +62,21 @@ public class App
     	keys.add("feed006");
     	DBUtil.initConstHash(keys);
     	for(int i=0;i<10;i++) {
-    		System.out.println(DBUtil.getDistKey(i));
+    		System.out.println(DBUtil.getConstDistKey(i));
     	}
+    }
+    
+    public void fairHash() {
+    	List<String> keys = new ArrayList<String>();
+    	keys.add("feed001");
+    	keys.add("feed002");
+    	keys.add("feed003");
+    	keys.add("feed004");
+    	keys.add("feed005");
+    	keys.add("feed006");
+    	DBUtil.initFairHash(keys);
+//    	DBUtil.printFairHash();
+    	System.out.println(DBUtil.getFairDistKey(-7989990424901016094L));
     }
     
     public void test(boolean b) throws LogicException {

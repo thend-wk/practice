@@ -303,6 +303,34 @@ public class HttpClientUtil {
 		return ret;
 	}
 	
+	public String execute(String url, HttpEntity httpEntity, Header[] headers) {
+		String ret = null;
+		HttpPost httppost = new HttpPost(url);
+		httppost.setEntity(httpEntity);
+		httppost.setHeaders(headers);
+		logger.info("executing request " + httppost.getURI());
+		CloseableHttpResponse response = null;
+		try {
+			response = httpclient.execute(httppost);
+			HttpEntity entity = response.getEntity();
+			logger.info("StatusLine:" + response.getStatusLine());
+			if (entity != null) {
+				ret = IOUtils.toString(entity.getContent());
+			}
+		} catch (Exception e) {
+			logger.error(e.getMessage());
+		} finally {
+			if(response != null) {
+				try {
+					response.close();
+				} catch (IOException e) {
+					logger.error(e.getMessage());
+				}
+			}
+		}
+		return ret;
+	}
+	
 	public static void main(String[] args) {
 		HttpClientUtil httpClientUtil = getInstance();
 		

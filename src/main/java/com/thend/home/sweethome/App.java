@@ -9,11 +9,13 @@ import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.commons.configuration.Configuration;
 import org.apache.commons.configuration.XMLConfiguration;
 import org.apache.commons.configuration.tree.xpath.XPathExpressionEngine;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang.StringUtils;
 import org.apache.http.Consts;
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;
@@ -67,7 +69,16 @@ public class App
 //        app.doSerialize();
 //        app.doShort();
         app.sendMsg();
+//        app.analyze();
+//        app.doCharacter();
     }
+    
+    public void doCharacter() {
+  		String str = "\u202E明天";
+  		str = str.replaceAll("\\p{C}", "");
+  		System.out.println(str);
+  		
+      }
     
     public void doShort() {
 		int num = (int) IDUtils.genID("052fdaeafa7e49f7d05c36b29b630de9");
@@ -223,28 +234,59 @@ public class App
     	try {
 	    	String url = "http://www.bobo.com/message/send.do";
 	    	String toUserId = "";
-	    	String message = "";
 	    	List<String> anchorMessages = FileUtils.readLines(new File("anchor_message.txt"));
 	    	for(String anchorMessage : anchorMessages) {
+		    	String message = "恭喜您获得《美好的你有未来》——官方节目大房间送出的电影卷福利，兑换码：%s，请打开连接http://piao.163.com/code/exchangeCode.html，按提示方法兑换使用。下期官方节目还有更多福利送出，不要错过哦！";
 	    		String[] items = anchorMessage.split(" ");
-		    	if(items.length == 2) {
-		    		toUserId = items[0];
-		    		message = items[1];
-			    	List<NameValuePair> nvPairs = new ArrayList<NameValuePair>();
-			    	nvPairs.add(new BasicNameValuePair("toUserId", toUserId));
-			    	nvPairs.add(new BasicNameValuePair("message", message));
-			    	UrlEncodedFormEntity formEntity = new UrlEncodedFormEntity(nvPairs, Consts.UTF_8);
-					List<Header> headers = new ArrayList<Header>();
-					headers.add(new BasicHeader("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8"));
-					headers.add(new BasicHeader("User-Agent","Mozilla/5.0 (Windows NT 5.1; rv:33.0) Gecko/20100101 Firefox/33.0"));
-					headers.add(new BasicHeader("Cookie", "_ntes_nnid=eadbed6008a8e0d2654861ba7ed48b7e,1409044217354; __NETEASE_DC_A_JURASSIC_UID__=737696851@10.120.147.92; P_INFO=bobo_gift@163.com|1417054264|1|bobo|00&99|bej&1416997033&bobo#bej&null#10#0#0|&0||bobo_gift@163.com; ANONYMOUS_TEMP_USERID=temp73027153; CHECK_163BOBO=0; NTES_SESS=msL_FlufYBPHI_Bv2_gFSm4J01C9unLY_7l3kGdDFu5bnO47rnp41.jU1zAsJqkYcixLOYz3sQCEzlHEpCqI2adLmkYc8wSqyvTN44JrKqzLVytbY_o1oyhATJPuRx4J7o3yTAieO5Yju; ANTICSRF=1129fc58a3d0006bc3e45f03bc49bcb4; S_INFO=1417054264|0|2&10##|bobo_gift; NTES_PASSPORT=dwKnhHu6jZK4g0IsgE5uLAaKUP56or.AAMuqxDDpBN4TPdtC9PJt3acy3Gk5sh4HlNC_Cvc.qDW3Ou7A89Ygvnv5P"));
-					headers.add(new BasicHeader("Referer","http://www.bobo.com/"));
-					String ret = HttpClientUtil.getInstance().execute(url, formEntity, headers.toArray(new Header[0]));
-				    System.out.println(ret);
-	    		}
+	    		toUserId = items[1];
+	    		message = String.format(message, items[0]);
+		    	List<NameValuePair> nvPairs = new ArrayList<NameValuePair>();
+		    	nvPairs.add(new BasicNameValuePair("toUserId", toUserId));
+		    	nvPairs.add(new BasicNameValuePair("message", message));
+		    	UrlEncodedFormEntity formEntity = new UrlEncodedFormEntity(nvPairs, Consts.UTF_8);
+				List<Header> headers = new ArrayList<Header>();
+				headers.add(new BasicHeader("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8"));
+				headers.add(new BasicHeader("User-Agent","Mozilla/5.0 (Windows NT 5.1; rv:33.0) Gecko/20100101 Firefox/33.0"));
+				headers.add(new BasicHeader("Cookie", "__NETEASE_DC_A_JURASSIC_UID__=8ee7d0b5819353f723c2b6ceb14849d2; _ntes_nnid=71089ae02fd2d2c5a3e5752cd5490735,1423106551042; P_INFO=bobo_gift@163.com|1427260002|1|bobo|00&99|null&null&null#bej&null#10#0#0|&0||bobo_gift@163.com; CHECK_163BOBO=0; ANONYMOUS_TEMP_USERID=temp76750817; NTES_SESS=l4n5cyZLj7YlahDld1T6b8T0lWCcV34SaOAe8Kc_sYUDQjLOFQaL0ZHN0mbhq98CEyk1jCmeh6dGmAzGad93urc1l8CEwWV9fhimozsh3hcV.fIDC4T0TfMbpqvY5kLqOTefpbyojUCHY; ANTICSRF=0d680978aec55db13026be165747d86c; S_INFO=1427260002|0|2&10##|bobo_gift; NTES_PASSPORT=zVbIPj2j5a.Se483xjiIKqpJdyCGLvbA.UOsD88XNyWZ2z0Hh2F0SJmQSA_BR5WcKyHwHumps81rAbOVyn7fXfeB2"));
+				headers.add(new BasicHeader("Referer","http://www.bobo.com/"));
+				String ret = HttpClientUtil.getInstance().execute(url, formEntity, headers.toArray(new Header[0]));
+			    System.out.println(ret);
 	    	}
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
+    }
+    
+    public void analyze() {
+    	try {
+    		List<String> users = FileUtils.readLines(new File("12306.txt"));
+    		String url = "http://v.showji.com/locating/showji.com1118.aspx?m=%s&output=json";
+    		List<String> bjPhones = new ArrayList<String>();
+    		for(String user : users) {
+    			String[] items = user.split("----");
+    			String phone = items[5];
+		    	List<NameValuePair> nvPairs = new ArrayList<NameValuePair>();
+		    	UrlEncodedFormEntity formEntity = new UrlEncodedFormEntity(nvPairs, Consts.UTF_8);
+				List<Header> headers = new ArrayList<Header>();
+				headers.add(new BasicHeader("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8"));
+				headers.add(new BasicHeader("User-Agent","Mozilla/5.0 (Windows NT 5.1; rv:33.0) Gecko/20100101 Firefox/33.0"));
+				headers.add(new BasicHeader("Referer","http://v.showji.com"));
+    			String ret = HttpClientUtil.getInstance().execute(String.format(url, phone), formEntity, headers.toArray(new Header[0]));
+    			try {
+	    			Map<String,String> map = Serializer.json.readValue(ret, Map.class);
+	    			String province = map.get("Province");
+	    			if(StringUtils.isNotBlank(province) && province.equals("北京")) {
+	    				bjPhones.add(phone);
+		    			System.out.println(province + "->" + phone);
+	    			}
+//	    			Thread.sleep(2000);
+    			} catch (Exception e) {
+    				e.printStackTrace();
+    			}
+    		}
+    		FileUtils.writeLines(new File("bjPhones.txt"), bjPhones);
+    	} catch (Exception e) {
+    		e.printStackTrace();
+    	}
     }
 }

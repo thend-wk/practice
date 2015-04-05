@@ -3,9 +3,6 @@ package com.thend.home.sweethome;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
-import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
-import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -16,12 +13,11 @@ import org.apache.commons.configuration.tree.xpath.XPathExpressionEngine;
 import org.apache.commons.io.FileUtils;
 import org.apache.http.Consts;
 import org.apache.http.Header;
-import org.apache.http.HttpEntity;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
-import org.apache.http.entity.mime.HttpMultipartMode;
-import org.apache.http.entity.mime.MultipartEntityBuilder;
-import org.apache.http.entity.mime.content.FileBody;
+//import org.apache.http.entity.mime.HttpMultipartMode;
+//import org.apache.http.entity.mime.MultipartEntityBuilder;
+//import org.apache.http.entity.mime.content.FileBody;
 import org.apache.http.message.BasicHeader;
 import org.apache.http.message.BasicNameValuePair;
 
@@ -66,7 +62,15 @@ public class App
 //        app.doTask();
 //        app.doSerialize();
 //        app.doShort();
-        app.sendMsg();
+//        app.sendMsg();
+//        app.giveCCurrency();
+        app.doCharacter();
+    }
+    
+    public void doCharacter() {
+    	String str = "\u202E明天";
+    	str = str.replaceAll("\\p{Cntrl}", "");
+    	System.out.println(str);
     }
     
     public void doShort() {
@@ -205,46 +209,59 @@ public class App
 		System.out.println(ori);
     }
     
-    public void updateCover() {
-	  String url = "http://localhost:8280/updatecover";
-      MultipartEntityBuilder builder = MultipartEntityBuilder.create();
-      builder.setMode(HttpMultipartMode.BROWSER_COMPATIBLE);
-      builder.setCharset(Charset.forName("utf-8"));
-      builder.addTextBody("roomId", "100015");
-      builder.addTextBody("iscover", "1");
-//      builder.addBinaryBody("file", new File("obama.jpg"));
-      builder.addPart("file", new FileBody(new File("obama.jpg")));
-	  String ret = HttpClientUtil.getInstance().execute(url, builder.build());
-      System.out.println(ret);
-    }
+//    public void updateCover() {
+//	  String url = "http://localhost:8280/updatecover";
+//      MultipartEntityBuilder builder = MultipartEntityBuilder.create();
+//      builder.setMode(HttpMultipartMode.BROWSER_COMPATIBLE);
+//      builder.setCharset(Charset.forName("utf-8"));
+//      builder.addTextBody("roomId", "100015");
+//      builder.addTextBody("iscover", "1");
+////      builder.addBinaryBody("file", new File("obama.jpg"));
+//      builder.addPart("file", new FileBody(new File("obama.jpg")));
+//	  String ret = HttpClientUtil.getInstance().execute(url, builder.build());
+//      System.out.println(ret);
+//    }
     
     @SuppressWarnings("unchecked")
 	public void sendMsg() {
     	try {
 	    	String url = "http://www.bobo.com/message/send.do";
 	    	String toUserId = "";
-	    	String message = "";
-	    	List<String> anchorMessages = FileUtils.readLines(new File("anchor_message.txt"));
-	    	for(String anchorMessage : anchorMessages) {
-	    		String[] items = anchorMessage.split(" ");
-		    	if(items.length == 2) {
-		    		toUserId = items[0];
-		    		message = items[1];
-			    	List<NameValuePair> nvPairs = new ArrayList<NameValuePair>();
-			    	nvPairs.add(new BasicNameValuePair("toUserId", toUserId));
-			    	nvPairs.add(new BasicNameValuePair("message", message));
-			    	UrlEncodedFormEntity formEntity = new UrlEncodedFormEntity(nvPairs, Consts.UTF_8);
-					List<Header> headers = new ArrayList<Header>();
-					headers.add(new BasicHeader("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8"));
-					headers.add(new BasicHeader("User-Agent","Mozilla/5.0 (Windows NT 5.1; rv:33.0) Gecko/20100101 Firefox/33.0"));
-					headers.add(new BasicHeader("Cookie", "_ntes_nnid=eadbed6008a8e0d2654861ba7ed48b7e,1409044217354; __NETEASE_DC_A_JURASSIC_UID__=737696851@10.120.147.92; P_INFO=bobo_gift@163.com|1417054264|1|bobo|00&99|bej&1416997033&bobo#bej&null#10#0#0|&0||bobo_gift@163.com; ANONYMOUS_TEMP_USERID=temp73027153; CHECK_163BOBO=0; NTES_SESS=msL_FlufYBPHI_Bv2_gFSm4J01C9unLY_7l3kGdDFu5bnO47rnp41.jU1zAsJqkYcixLOYz3sQCEzlHEpCqI2adLmkYc8wSqyvTN44JrKqzLVytbY_o1oyhATJPuRx4J7o3yTAieO5Yju; ANTICSRF=1129fc58a3d0006bc3e45f03bc49bcb4; S_INFO=1417054264|0|2&10##|bobo_gift; NTES_PASSPORT=dwKnhHu6jZK4g0IsgE5uLAaKUP56or.AAMuqxDDpBN4TPdtC9PJt3acy3Gk5sh4HlNC_Cvc.qDW3Ou7A89Ygvnv5P"));
-					headers.add(new BasicHeader("Referer","http://www.bobo.com/"));
-					String ret = HttpClientUtil.getInstance().execute(url, formEntity, headers.toArray(new Header[0]));
-				    System.out.println(ret);
-	    		}
+	    	String message = "您好，您报名参加O2O GODDESS女团选拔大赛成功，诚邀您参加海选！海选时间请查看：http://www.bobo.com/14/1205/18/ACNL0T8N003500CJ.html";
+	    	List<String> anchors = FileUtils.readLines(new File("anchor_message.txt"));
+	    	for(String anchor : anchors) {
+	    		toUserId = anchor;
+		    	List<NameValuePair> nvPairs = new ArrayList<NameValuePair>();
+		    	nvPairs.add(new BasicNameValuePair("toUserId", toUserId));
+		    	nvPairs.add(new BasicNameValuePair("message", message));
+		    	UrlEncodedFormEntity formEntity = new UrlEncodedFormEntity(nvPairs, Consts.UTF_8);
+				List<Header> headers = new ArrayList<Header>();
+				headers.add(new BasicHeader("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8"));
+				headers.add(new BasicHeader("User-Agent","Mozilla/5.0 (Windows NT 5.1; rv:33.0) Gecko/20100101 Firefox/33.0"));
+				headers.add(new BasicHeader("Cookie", "_ntes_nnid=eadbed6008a8e0d2654861ba7ed48b7e,1409044217354; __NETEASE_DC_A_JURASSIC_UID__=737696851@10.120.147.92; P_INFO=bobo_gift@163.com|1417054264|1|bobo|00&99|bej&1416997033&bobo#bej&null#10#0#0|&0||bobo_gift@163.com; ANONYMOUS_TEMP_USERID=temp73027153; CHECK_163BOBO=0; NTES_SESS=msL_FlufYBPHI_Bv2_gFSm4J01C9unLY_7l3kGdDFu5bnO47rnp41.jU1zAsJqkYcixLOYz3sQCEzlHEpCqI2adLmkYc8wSqyvTN44JrKqzLVytbY_o1oyhATJPuRx4J7o3yTAieO5Yju; ANTICSRF=1129fc58a3d0006bc3e45f03bc49bcb4; S_INFO=1417054264|0|2&10##|bobo_gift; NTES_PASSPORT=dwKnhHu6jZK4g0IsgE5uLAaKUP56or.AAMuqxDDpBN4TPdtC9PJt3acy3Gk5sh4HlNC_Cvc.qDW3Ou7A89Ygvnv5P"));
+				headers.add(new BasicHeader("Referer","http://www.bobo.com/"));
+				String ret = HttpClientUtil.getInstance().execute(url, formEntity, headers.toArray(new Header[0]));
+			    System.out.println(ret);
+			    Thread.sleep(10);
 	    	}
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
     }
+    
+    
+//  public void giveCCurrency() {
+//	  String url = "http://cms.live.netease.com/bj/finance/whoisdaddy.do";
+//	  MultipartEntityBuilder builder = MultipartEntityBuilder.create();
+//	  List<Header> headers = new ArrayList<Header>();
+//	  headers.add(new BasicHeader("User-Agent","Mozilla/5.0 (Windows NT 5.1; rv:33.0) Gecko/20100101 Firefox/33.0"));
+//	  headers.add(new BasicHeader("Cookie", "VASESSIONID=fd67b71d-9151-4e93-88cd-761bb8ea8142"));
+//	  headers.add(new BasicHeader("Referer","http://cms.live.netease.com/"));
+//	  headers.add(new BasicHeader("Authorization", "Basic bGl2ZTpxNSZedVRpPHJkMGdGbSs="));
+//	  builder.setCharset(Charset.forName("utf-8"));
+//	  builder.addTextBody("ammount", "50000");
+//	  builder.addPart("file", new FileBody(new File("emails.txt"), ContentType.TEXT_PLAIN));
+//	  String ret = HttpClientUtil.getInstance().execute(url, builder.build(), headers.toArray(new Header[0]));
+//	  System.out.println(ret);
+//  }
 }

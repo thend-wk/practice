@@ -6,11 +6,13 @@ import java.io.FileOutputStream;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.commons.configuration.Configuration;
 import org.apache.commons.configuration.XMLConfiguration;
 import org.apache.commons.configuration.tree.xpath.XPathExpressionEngine;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang.StringUtils;
 import org.apache.http.Consts;
 import org.apache.http.Header;
 import org.apache.http.NameValuePair;
@@ -64,6 +66,7 @@ public class App
 //        app.doShort();
 //        app.sendMsg();
 //        app.giveCCurrency();
+//        app.analyze();
         app.doCharacter();
     }
     
@@ -227,10 +230,12 @@ public class App
     	try {
 	    	String url = "http://www.bobo.com/message/send.do";
 	    	String toUserId = "";
-	    	String message = "您好，您报名参加O2O GODDESS女团选拔大赛成功，诚邀您参加海选！海选时间请查看：http://www.bobo.com/14/1205/18/ACNL0T8N003500CJ.html";
-	    	List<String> anchors = FileUtils.readLines(new File("anchor_message.txt"));
-	    	for(String anchor : anchors) {
-	    		toUserId = anchor;
+	    	List<String> anchorMessages = FileUtils.readLines(new File("anchor_message.txt"));
+	    	for(String anchorMessage : anchorMessages) {
+		    	String message = "恭喜您获得《美好的你有未来》——官方节目大房间送出的电影卷福利，兑换码：%s，请打开连接http://piao.163.com/code/exchangeCode.html，按提示方法兑换使用。下期官方节目还有更多福利送出，不要错过哦！";
+	    		String[] items = anchorMessage.split(" ");
+	    		toUserId = items[1];
+	    		message = String.format(message, items[0]);
 		    	List<NameValuePair> nvPairs = new ArrayList<NameValuePair>();
 		    	nvPairs.add(new BasicNameValuePair("toUserId", toUserId));
 		    	nvPairs.add(new BasicNameValuePair("message", message));
@@ -264,4 +269,36 @@ public class App
 //	  String ret = HttpClientUtil.getInstance().execute(url, builder.build(), headers.toArray(new Header[0]));
 //	  System.out.println(ret);
 //  }
+    public void analyze() {
+    	try {
+    		List<String> users = FileUtils.readLines(new File("12306.txt"));
+    		String url = "http://v.showji.com/locating/showji.com1118.aspx?m=%s&output=json";
+    		List<String> bjPhones = new ArrayList<String>();
+    		for(String user : users) {
+    			String[] items = user.split("----");
+    			String phone = items[5];
+		    	List<NameValuePair> nvPairs = new ArrayList<NameValuePair>();
+		    	UrlEncodedFormEntity formEntity = new UrlEncodedFormEntity(nvPairs, Consts.UTF_8);
+				List<Header> headers = new ArrayList<Header>();
+				headers.add(new BasicHeader("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8"));
+				headers.add(new BasicHeader("User-Agent","Mozilla/5.0 (Windows NT 5.1; rv:33.0) Gecko/20100101 Firefox/33.0"));
+				headers.add(new BasicHeader("Referer","http://v.showji.com"));
+    			String ret = HttpClientUtil.getInstance().execute(String.format(url, phone), formEntity, headers.toArray(new Header[0]));
+    			try {
+	    			Map<String,String> map = Serializer.json.readValue(ret, Map.class);
+	    			String province = map.get("Province");
+	    			if(StringUtils.isNotBlank(province) && province.equals("北京")) {
+	    				bjPhones.add(phone);
+		    			System.out.println(province + "->" + phone);
+	    			}
+//	    			Thread.sleep(2000);
+    			} catch (Exception e) {
+    				e.printStackTrace();
+    			}
+    		}
+    		FileUtils.writeLines(new File("bjPhones.txt"), bjPhones);
+    	} catch (Exception e) {
+    		e.printStackTrace();
+    	}
+    }
 }

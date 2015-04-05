@@ -1,6 +1,7 @@
 package com.thend.home.sweethome.redis;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.lang.reflect.Method;
@@ -11,13 +12,16 @@ import java.util.List;
 import java.util.Set;
 import java.util.regex.Pattern;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.ArrayUtils;
 
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPoolConfig;
 import redis.clients.jedis.JedisShardInfo;
+import redis.clients.jedis.Pipeline;
 import redis.clients.jedis.ShardedJedis;
+import redis.clients.jedis.ShardedJedisPipeline;
 import redis.clients.jedis.ShardedJedisPool;
 
 public class Console {
@@ -236,6 +240,33 @@ public class Console {
 		}
 	}
 	
+	public void runClear() {
+		if(null == redisPoolConfig) {
+			redisPoolConfig = new JedisPoolConfig();
+			redisPoolConfig.setMaxActive(5000);
+			redisPoolConfig.setMaxIdle(1000);
+			redisPoolConfig.setMaxWait(2000);
+		}
+		if(null == shardedJedisPool) {
+			shardedJedisPool = new ShardedJedisPool(redisPoolConfig,parseShardInfo(redisHostList)
+					,Pattern.compile("#([0-9]+)#"));
+		}
+		
+		
+		ShardedJedis jedis = shardedJedisPool.getResource();
+		try {
+			List<String> userIds = FileUtils.readLines(new File("userIds.txt"));
+			for(String userId : userIds) {
+				String cachekey = "user#" + userId + "#";
+				jedis.del(cachekey);
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			shardedJedisPool.returnResource(jedis);
+		}
+	}
+	
 	public static void main(String[] args) {
 		printUsage();
 		BufferedReader reader = null;
@@ -246,6 +277,8 @@ public class Console {
 				new Console().runConfig();
 			} else if(readLine.equalsIgnoreCase("2")) {
 				new Console().run();
+			} else if(readLine.equalsIgnoreCase("3")) {
+				new Console().runClear();
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -261,7 +294,7 @@ public class Console {
 	}
 	
 	private static void printUsage() {
-		System.out.println("1 for config;2 for common");
+		System.out.println("1 for config;2 for common;3 for clear user cache");
 	}
 
 }

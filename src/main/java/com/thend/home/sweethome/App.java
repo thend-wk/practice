@@ -7,6 +7,7 @@ import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -68,16 +69,18 @@ public class App
 //        app.doTask();
 //        app.doSerialize();
 //        app.doShort();
-        app.sendMsg();
+//        app.sendMsg();
 //        app.analyze();
-//        app.doCharacter();
+        app.doCharacter();
     }
     
     public void doCharacter() {
   		String str = "\u202E明天";
   		str = str.replaceAll("\\p{C}", "");
   		System.out.println(str);
-  		
+  		Calendar c = Calendar.getInstance();
+  		c.set(2015, 3, 18, 0, 0, 0);
+  		System.out.println(c.getTime());
       }
     
     public void doShort() {

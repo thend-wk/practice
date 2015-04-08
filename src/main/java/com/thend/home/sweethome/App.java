@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -71,10 +72,13 @@ public class App
     }
     
     public void doCharacter() {
-    	String str = "\u202E明天";
-    	str = str.replaceAll("\\p{Cntrl}", "");
-    	System.out.println(str);
-    }
+  		String str = "\u202E明天";
+  		str = str.replaceAll("\\p{C}", "");
+  		System.out.println(str);
+  		Calendar c = Calendar.getInstance();
+  		c.set(2015, 3, 18, 0, 0, 0);
+  		System.out.println(c.getTime());
+      }
     
     public void doShort() {
 		int num = (int) IDUtils.genID("052fdaeafa7e49f7d05c36b29b630de9");

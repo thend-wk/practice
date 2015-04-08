@@ -47,7 +47,7 @@ public class CouponGenerator {
 				System.out.println(couponHash.size() + " " + coupon);
 			}
 		}
-		FileUtils.writeLines(new File("coupons6.txt"), couponHash.keySet());
+		FileUtils.writeLines(new File("coupons7.txt"), couponHash.keySet());
 	}
 
 }

@@ -20,7 +20,7 @@ public class TexasHoldEm {
 	//起注位置
     private int dealerIndex = 0;
 	//最大游戏人数
-	private static final int MAX_PLAYERS = 9;
+	private static final int MAX_PLAYERS = 6;
 	//游戏人员列表
 	private List<Player> playerList;
 	//评分工具
@@ -51,6 +51,8 @@ public class TexasHoldEm {
     private PokerMoney initialBet;
     //minimum
     private PokerMoney minimumBet;
+    //empty值
+    private float MINIMUM = 0.01f;
 
     
     public TexasHoldEm() {
@@ -615,7 +617,7 @@ public class TexasHoldEm {
             if ( currPlayer.getBankroll().compareTo( new PokerMoney() ) == 1 ) {
                 currPlayer.allin = false;
             }
-            if ( ( currPlayer.getBankroll().amount() - betS ) < 0.009f ) {
+            if ( ( currPlayer.getBankroll().amount() - betS ) < MINIMUM ) {
                 currPlayer.allin = true;
             }
             if ( ( ( betP + betS  ) < currBet.amount() ) && ( !currPlayer.allin ) ) {
@@ -637,7 +639,7 @@ public class TexasHoldEm {
                             initialBet = new PokerMoney( raise.amount() );
                         }
                         betOK = true;
-                    } else if ( currBet.amount() == 0.0 ) {
+                    } else if ( currBet.amount() == 0.0f ) {
                         if ( raise.compareTo( minimumBet ) == -1 ) {
                             System.out.println("You must bet the minimum bet of at least " + minimumBet);
                             //TODO
@@ -664,7 +666,7 @@ public class TexasHoldEm {
                         pot.add( betS );
                         currPlayer.betInGame();
                         currPlayer.potOK = true;
-                        if ( currPlayer.getBankroll().compareTo( new PokerMoney( 0.01f ) ) == -1 ) {
+                        if ( currPlayer.getBankroll().compareTo( new PokerMoney(MINIMUM) ) == -1 ) {
                             currPlayer.allin = true;
                         }
                         playerList.set(currPlayerIndex,currPlayer);
@@ -757,7 +759,7 @@ public class TexasHoldEm {
                     pot.add( betS );
                     currPlayer.betInGame();
                     currPlayer.potOK = true;
-                    if ( currPlayer.getBankroll().compareTo( new PokerMoney( 0.010f ) ) == -1 ) {
+                    if ( currPlayer.getBankroll().compareTo( new PokerMoney( MINIMUM) ) == -1 ) {
                         currPlayer.allin = true;
                     }
                     playerList.set(currPlayerIndex,currPlayer);
@@ -789,7 +791,7 @@ public class TexasHoldEm {
                     if ( currPlayer.allin ) {
                         System.out.println(currPlayer.getName() + " went All In!");
                         betOK = true;
-                    } else if ( currBet.amount() == 0.0 ) {
+                    } else if ( currBet.amount() == 0.0f ) {
                         System.out.println(currPlayer.getName() + " checked.");
                         betOK = true;
                     } else {

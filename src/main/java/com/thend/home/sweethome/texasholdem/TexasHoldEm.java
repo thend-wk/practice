@@ -3,25 +3,22 @@ package com.thend.home.sweethome.texasholdem;
 import java.util.ArrayList;
 import java.util.List;
 /**
- * 德州扑克
+ * 德州扑克（一桌）
  * @author kaiwang
  *
  */
 public class TexasHoldEm {
-	
 	//一副牌
 	private Deck deck;
-	//当前游戏人数
-	private int playerSize = 6;
-	//步骤
+	//当前步骤
 	private int actionNum = 0;
-	//最多步骤
+	//总步骤数
 	private int maxActionNum = 5;
-	//起注位置
+	//Dealer位置
     private int dealerIndex = 0;
 	//最大游戏人数
 	private static final int MAX_PLAYERS = 6;
-	//游戏人员列表
+	//在位游戏人员列表
 	private List<Player> playerList;
 	//评分工具
     private HandEvaluator he;
@@ -37,7 +34,7 @@ public class TexasHoldEm {
 	public PokerMoney smallBlind;
 	//地注
 	public PokerMoney ante;
-	//是否游戏中
+	//游戏是否进行中
 	private boolean inGame;
 	//开牌用户手牌得分
     private float playerHandValues[];
@@ -51,67 +48,70 @@ public class TexasHoldEm {
     private PokerMoney initialBet;
     //minimum
     private PokerMoney minimumBet;
+    
     //empty值
     private float MINIMUM = 0.01f;
-
+    //小盲注值
+	public static final int SMALL_BLIND = 10;
+	//底注值
+	public static final int ANTE = 500;
     
     public TexasHoldEm() {
-    	init();
-    	deal();
-    	for(int i=0;i<4;i++) {
-    		nextAction();
-    	}
+    	deck = new Deck();
+    	he = new HandEvaluator();
+    	blinds = true;
+     	antes = false;
+     	smallBlind = new PokerMoney(SMALL_BLIND);
+     	ante = new PokerMoney(ANTE);
+     	minimumBet = new PokerMoney(SMALL_BLIND * 2);
+    	playerList = new ArrayList<Player>(MAX_PLAYERS);
     }
     /**
      * 初始化
      */
     private void init() {
-    	deck = new Deck();
-    	deck.shuffle();
     	inGame = true;
-    	he = new HandEvaluator();
-     	blinds = true;
-     	antes = true;
-     	smallBlind = new PokerMoney(200f);
-     	ante = new PokerMoney(1000f);
-     	minimumBet = new PokerMoney(20f);
-    	playerList = new ArrayList<Player>(playerSize);
-    	for(int i=0;i<playerSize;i++) {
-    		playerList.add(new Player());
-    	}
+    	deck.shuffle();
+    	deal();
     }
 
+    private int blindBet() {
+    	int size = playerList.size();
+    	int dealerSeat = playerList.get(dealerIndex).seat;
+    	if(size == 2) {
+    		return dealerIndex;
+    	} else {
+    		int smallBlindSeat = nextSeat(dealerSeat);
+    		int smallBlindIdx = getPlayerInSeat(smallBlindSeat);
+    		playerList.get(smallBlindIdx).
+    		currBet = new PokerMoney( betS + betP );
+            currPlayer.subtract( betS );
+            pot.add( betS );
+            currPlayer.betInGame();
+            prevSeat = nextSeat(prevSeat);
+    	}
+        
+        if (playerList.size() == 2) {
+            
+        } else {
+            return getPlayerInSeat(nextSeat(prevSeat));
+        }
+    }
 
 	/***********************
 	 * deal() deals the initial cards.  This function must be included in the game definition.  
 	 **/
     private void deal() {
-
     	actionNum++;
-    	
-//    Initialize variable c - which is a Card.
-//
-        Card  c = new Card();
-        
-
-//   First card down
-//     Loop through all players and give them their first card.
-//
-        for ( int i = 0; i < playerList.size(); i++ ) {
-        
-//     Set c to the top card from the deck and add it to the players hand (in the hole).
-//     Can also add it to their hand face up by calling addUpCard( c ) instead of addHoleCard( c ).
-//   
-            c = deck.deal();
-            ((Player)playerList.get(i) ).getHand().addHoleCard( c );
-        }
-
-//   Second card down
-//     Again loop through all players and give them their second card.  Same thing happens as the first card except the second card is placed in position 1.
-//
-        for ( int i = 0; i < playerList.size(); i++ ) {
-            c = deck.deal();
-            ((Player)playerList.get(i)).getHand().addHoleCard( c );
+        Card c = null;
+        for(Player player : playerList) {
+        	player.in = true;
+        	//发第一张牌
+        	c = deck.deal();
+        	player.getHand().addHoleCard(c);
+        	//发第二张牌
+        	c = deck.deal();
+        	player.getHand().addHoleCard(c);
         }
     }
     

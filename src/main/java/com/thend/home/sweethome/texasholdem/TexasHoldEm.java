@@ -664,7 +664,7 @@ public class TexasHoldEm {
                         pot.add( betS );
                         currPlayer.betInGame();
                         currPlayer.potOK = true;
-                        if ( currPlayer.getBankroll().compareTo( new PokerMoney( 0.010f ) ) == -1 ) {
+                        if ( currPlayer.getBankroll().compareTo( new PokerMoney( 0.01f ) ) == -1 ) {
                             currPlayer.allin = true;
                         }
                         playerList.set(currPlayerIndex,currPlayer);

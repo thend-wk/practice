@@ -54,80 +54,31 @@ public class Player {
  **/
     public  boolean                 allin;
 /**
- * If this player is an AI player
- **/
-    public  boolean                 ai;
-/**
  * Seat # this player is sitting in.  = -9 if he's not sitting anywhere.
  **/
     public  int                     seat;
 
-    private String                  name;                     //  This player's name
+    private long userId; 									  //用户id
     private Hand                    hand;                     //  The card's in his hand
     private PokerMoney              bankroll;                 //  How much money this player has to his name
     private PokerMoney              bet;                      //  How much this player is about to bet
     private PokerMoney              prevBet;                  //  How much this player bet last time around - to calculate raises
 
 /***************************
- * The default constructor creates a new Player.  A name must be provided before the player enters the game.
- **/
-    public Player() {
-        name = null;
-        hand = new Hand();
-        bankroll = new PokerMoney();
-        bet = new PokerMoney();
-        prevBet = new PokerMoney();
-        in = false;
-        ai = false;
-        potOK = true;
-        seat = -9;
-    }
-
-/***************************
  * The constructor creates a new Player
  * 
  * @param n The name of the new Player
  *
  **/
-    public Player( String n ) {
-        name = n;
+    public Player(long userId, int seat) {
         hand = new Hand();
         bankroll = new PokerMoney();
         bet = new PokerMoney();
         prevBet = new PokerMoney();
         in = false;
-        ai = false;
         potOK = true;
-        seat = -9;
-    }
-
-/***************************
- * The constructor creates a new Player
- * 
- * @param n The name of the new Player
- * @param l Specifies if this player is AI of human.  If true, this player is an AI player.
- *
- **/
-    public Player( String n,boolean l ) {
-        name = n;
-        hand = new Hand();
-        bankroll = new PokerMoney();
-        bet = new PokerMoney();
-        prevBet = new PokerMoney();
-        in = false;
-        ai = l;
-        potOK = true;
-        seat = -9;
-    }
-
-/***************************
- * getName() is used to access the private variable
- *
- * @return The name of the player
- *
- **/
-    public String getName() {
-        return name;
+        this.userId = userId;
+        this.seat = seat;
     }
 
 /***************************
@@ -169,17 +120,6 @@ public class Player {
  **/
     public Hand getHand() {
     	return hand;
-    }
-
-/***************************
- * setName() is used to set the player's name.  Note that only certain classes are allowed to
- * access this function to try to limit cheating.
- *
- * @param n The String to which the player's name should be set
- *
- **/
-    public void setName( String n ) {
-    	name = n;
     }
 
 /***************************
@@ -275,4 +215,12 @@ public class Player {
         potOK = false;
         hand.clearHand();
     }
+
+public long getUserId() {
+	return userId;
+}
+
+public void setUserId(long userId) {
+	this.userId = userId;
+}
 }

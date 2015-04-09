@@ -2,12 +2,18 @@ package com.thend.home.sweethome.texasholdem;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+
+import com.gs.collections.impl.map.mutable.ConcurrentHashMap;
 /**
  * 德州扑克（一桌）
  * @author kaiwang
  *
  */
 public class TexasHoldEm {
+	
+	//游戏房间id
+	private int roomId;
 	//一副牌
 	private Deck deck;
 	//当前步骤
@@ -16,10 +22,15 @@ public class TexasHoldEm {
 	private int maxActionNum = 5;
 	//Dealer位置
     private int dealerIndex = 0;
+    //小盲注座位
+    private int smallBlindSeat = -1;
+    //大盲注座位
+    private int bigBlindSeat = -1;
 	//最大游戏人数
 	private static final int MAX_PLAYERS = 6;
 	//在位游戏人员列表
 	private List<Player> playerList;
+	private ConcurrentHashMap<Integer, Player> seatPlayerMap;
 	//评分工具
     private HandEvaluator he;
     //是否跳过展示结果
@@ -39,7 +50,7 @@ public class TexasHoldEm {
 	//开牌用户手牌得分
     private float playerHandValues[];
     //边池
-    public ArrayList<SidePot> sidePots;
+    public List<SidePot> sidePots;
     //当前牌手
     private int currPlayerIndex;
     //当前最高投注
@@ -55,100 +66,175 @@ public class TexasHoldEm {
 	public static final int SMALL_BLIND = 10;
 	//底注值
 	public static final int ANTE = 500;
+	
+	private ReentrantReadWriteLock playerLock;
     
-    public TexasHoldEm() {
+    public TexasHoldEm(int roomId) {
+    	this.roomId = roomId;
     	deck = new Deck();
     	he = new HandEvaluator();
     	blinds = true;
      	antes = false;
+     	pot = new PokerMoney();
      	smallBlind = new PokerMoney(SMALL_BLIND);
      	ante = new PokerMoney(ANTE);
      	minimumBet = new PokerMoney(SMALL_BLIND * 2);
+     	initialBet = new PokerMoney();
     	playerList = new ArrayList<Player>(MAX_PLAYERS);
+    	seatPlayerMap = new ConcurrentHashMap<Integer, Player>(MAX_PLAYERS);
+    	playerLock = new ReentrantReadWriteLock();
+    	sidePots = new ArrayList<SidePot>(MAX_PLAYERS - 1);
     }
+    
     /**
-     * 初始化
+     * 开始一轮游戏
      */
-    private void init() {
+    private void begin() {
     	inGame = true;
     	deck.shuffle();
     	deal();
+    	//TODO 广播
+    	print();
     }
 
+    private void print() {
+    	System.out.println("*********************************");
+    	System.out.println("currentPlayerIndex : " + currPlayerIndex);
+    	System.out.println("pot : " + pot.amount());
+    	for(Player player : playerList) {
+    		System.out.println("userId : " + player.getUserId());
+    		System.out.print("petOk : " + player.potOK + " ");
+    		System.out.print("in : " + player.in + " ");
+    		System.out.print("allin : " + player.allin + " ");
+    		System.out.print("seat : " + player.seat + " ");
+    		System.out.println("hand : ");
+    		int holeCount = player.getHand().getNumHole();
+    		for(int i=0;i<holeCount;i++) {
+    			System.out.println(player.getHand().getHoleCard(i));
+    		}
+    		int shardCount = player.getHand().getNumShared();
+    		for(int i=0;i<shardCount;i++) {
+    			System.out.println(player.getHand().getSharedCard(i));
+    		}
+    		System.out.print("bankroll : " + player.getBankroll().amount() + " ");
+    		System.out.print("bet : " + player.getBet().amount() + " ");
+    		System.out.println("prevBet : " + player.getPrevBet().amount() + " ");
+    	}
+    }
+    
+    public boolean attend(long userId, int seat) {
+    	playerLock.writeLock().lock();
+    	try {
+	    	if(seatPlayerMap.contains(seat)) {
+	    		return false;
+	    	}
+	    	Player player = new Player(userId, seat);
+	    	player.setBankroll(ANTE);
+	    	playerList.add(player);
+	    	seatPlayerMap.put(seat, player);
+    	} finally {
+    		playerLock.writeLock().unlock();
+    	}
+    	if(!inGame && playerList.size() >= 4) {
+    		begin();
+    	}
+    	return true;
+    }
+    
+    public boolean attend(long userId, int seat, int bankRoll) {
+    	playerLock.writeLock().lock();
+    	try {
+	    	if(seatPlayerMap.contains(seat)) {
+	    		return false;
+	    	}
+	    	Player player = new Player(userId, seat);
+	    	player.setBankroll(bankRoll);
+	    	playerList.add(player);
+	    	seatPlayerMap.put(seat, player);
+    	} finally {
+    		playerLock.writeLock().unlock();
+    	}
+    	if(!inGame && playerList.size() >= 4) {
+    		begin();
+    	}
+    	return true;
+    }
+     
     private int blindBet() {
     	int size = playerList.size();
     	int dealerSeat = playerList.get(dealerIndex).seat;
     	if(size == 2) {
     		return dealerIndex;
     	} else {
-    		int smallBlindSeat = nextSeat(dealerSeat);
+    		smallBlindSeat = nextSeat(dealerSeat);
     		int smallBlindIdx = getPlayerInSeat(smallBlindSeat);
-    		playerList.get(smallBlindIdx).
-    		currBet = new PokerMoney( betS + betP );
-            currPlayer.subtract( betS );
-            pot.add( betS );
-            currPlayer.betInGame();
-            prevSeat = nextSeat(prevSeat);
+    		Player curPlayer = playerList.get(smallBlindIdx);
+    		//投小盲注
+    		innerBet(curPlayer, smallBlind.amount());
+            bigBlindSeat = nextSeat(smallBlindSeat);
+            int bigBlindIdx = getPlayerInSeat(bigBlindSeat);
+            //投大盲注
+            curPlayer = playerList.get(bigBlindIdx);
+            innerBet(curPlayer, smallBlind.amount() * 2);
+    		//更新当前最高投注
+    		currBet = new PokerMoney(smallBlind.amount() * 2);
+    		return getPlayerInSeat(nextSeat(bigBlindSeat));
     	}
-        
-        if (playerList.size() == 2) {
-            
-        } else {
-            return getPlayerInSeat(nextSeat(prevSeat));
-        }
+    }
+    
+    private void innerBet(Player curPlayer, float betCount) {
+    	curPlayer.setBet(betCount);
+    	curPlayer.subtract(betCount);
+    	curPlayer.betInGame();
+    	pot.add(betCount);
     }
 
 	/***********************
 	 * deal() deals the initial cards.  This function must be included in the game definition.  
 	 **/
     private void deal() {
-    	actionNum++;
-        Card c = null;
-        for(Player player : playerList) {
-        	player.in = true;
-        	//发第一张牌
-        	c = deck.deal();
-        	player.getHand().addHoleCard(c);
-        	//发第二张牌
-        	c = deck.deal();
-        	player.getHand().addHoleCard(c);
-        }
+    	playerLock.writeLock().lock();
+    	try {
+	    	actionNum++;
+	        Card c = null;
+	        for(Player player : playerList) {
+	        	player.in = true;
+	        	//发第一张牌
+	        	c = deck.deal();
+	        	player.getHand().addHoleCard(c);
+	        	//发第二张牌
+	        	c = deck.deal();
+	        	player.getHand().addHoleCard(c);
+	        }
+	        currPlayerIndex = blindBet();
+    	} finally {
+    		playerLock.writeLock().unlock();
+    	}
     }
     
     /***********************
      * nextAction() determines what happens next.  The next action function gets called by the main PokerGame class at the end of a "round"
      **/
     private void nextAction() {
-
-//         Increment the actionNum variable - required.
-//
         actionNum++;
-
-//         Reset some betting variables for all of the players - required.
-//
         for ( int i = 0; i < playerList.size(); i++ ) {
-            playerList.get(i).potOK = false;
-            playerList.get(i).setBet(0.0f);
-            playerList.get(i).setPrevBet(0.0f);
+        	Player player = playerList.get(i);
+        	if(player.in) {
+        		player.potOK = false;
+        		player.setBet(0.0f);
+        		player.setPrevBet(0.0f);
+        	}
         }
-
-//         Reset some game variables if this game is not finished.  If actionNum = maxActionNum, all thats left to do is the showdown.
-//
-        if ( actionNum != maxActionNum ) {
-        	PokerMoney currBet = new PokerMoney(0.0f);
-            int currPlayerIndex = firstToBet();
+        if (actionNum != maxActionNum) {
+        	currBet = new PokerMoney(0.0f);
+            currPlayerIndex = firstToBet();
             if ( ( currPlayerIndex < 0 ) || ( currPlayerIndex >= playerList.size() ) ) {    
                 actionNum = maxActionNum;
                 skipShow = true;
             }
         }
 
-//         This switch statement is the important piece of code which designates what to do for each action.  actionNum is initialized = 1, so the switch must
-//         check for the cases where actionNum goes from 2 to maxActionNum (defined in the constructor above).  For each case it calls the required functions.
-//         Setting bestPossible is not necessary, but can be helpful for any AI players that use that variable.  The show() function should always be called when
-//         actionNum = maxActionNum.
-//
-        switch ( actionNum ) {
+        switch (actionNum) {
             case 2 :
                 flop();
                 break;
@@ -170,34 +256,16 @@ public class TexasHoldEm {
 	 * flop() deals the Flop - 3 shared cards
 	 **/
     private void flop() {
-
-//     This is very similar to the deal() function in that it deals cards from the deck, gives them to players, and also indicates where to display them on the table.
-//     Create a new blank card.
-//
-        Card  c = new Card();
-
-//     Set c equal to the next card in the deck.
-//
-        c = deck.deal();
-
-//     Loop through all the players and add the card to their hands.
-//
-        for ( int i = 0; i < playerList.size(); i++ ) {
-            ((Player)playerList.get(i)).getHand().addSharedCard( c );
-        }
-
-//     Repeat for second flop card.
-//
-        c = deck.deal();
-        for ( int i = 0; i < playerList.size(); i++ ) {
-            ( (Player)playerList.get(i) ).getHand().addSharedCard( c );
-        }
-
-//     Repeat for third flop card
-//
-        c = deck.deal();
-        for ( int i = 0; i < playerList.size(); i++ ) {
-            ((Player)playerList.get(i)).getHand().addSharedCard( c );
+    	int size = playerList.size();
+        Card c = null;
+        for (int i=0;i<3;i++) {
+        	c = deck.deal();
+        	for(int j=0;j<size;j++) {
+	        	Player player = playerList.get(j);
+	        	if(player.in) {
+	        		player.getHand().addSharedCard(c);
+	        	}
+        	}
         }
     }
 
@@ -206,10 +274,13 @@ public class TexasHoldEm {
 	 * Very similar to the flop() logic - exception the position has changed to positon 3.
 	 **/
     private void turn() {
-        Card  c = new Card();
-        c = deck.deal();
-        for ( int i = 0; i < playerList.size(); i++ ) {
-            ((Player)playerList.get(i)).getHand().addSharedCard( c );
+    	int size = playerList.size();
+        Card c = deck.deal();
+        for (int i=0;i<size;i++) {
+        	Player player = playerList.get(i);
+        	if(player.in) {
+        		player.getHand().addSharedCard(c);
+        	}
         }
     }
 
@@ -218,10 +289,13 @@ public class TexasHoldEm {
 	 * same as the turn() logic, exception card is shown at position 4
 	 **/
     private void river() {
-        Card  c = new Card();
-        c = deck.deal();
-        for ( int i = 0; i < playerList.size(); i++ ) {
-            ((Player)playerList.get(i)).getHand().addSharedCard( c );
+    	int size = playerList.size();
+        Card c = deck.deal();
+        for (int i=0;i<size;i++) {
+        	Player player = playerList.get(i);
+        	if(player.in) {
+        		player.getHand().addSharedCard(c);
+        	}
         }
     }
     
@@ -241,13 +315,14 @@ public class TexasHoldEm {
      * calcWinner() caluclates the winner(s) of the hand.
      **/
     private void calcWinner() {
+    	int size = playerList.size();
         int highPlayer = 0;
         float highHand = 0.0f;
         int numWinners = 0;
         int winner[] = new int[MAX_PLAYERS];
         playerHandValues = new float[MAX_PLAYERS];
 
-        for ( int i = 0; i < playerList.size(); i++ ) {
+        for (int i=0;i<size;i++) {
             Player p = playerList.get(i);
             if (p.in) {
                 playerHandValues[p.seat] = bestHand(p.getHand());
@@ -257,7 +332,7 @@ public class TexasHoldEm {
                 }
             }
         }
-        for ( int i = 0; i < playerList.size(); i++ ) {
+        for (int i=0;i<size;i++) {
             Player p = playerList.get(i);
             if (p.in) {
                 if (playerHandValues[p.seat] == highHand) {
@@ -268,23 +343,24 @@ public class TexasHoldEm {
         }
 
         PokerMoney winnersTake = new PokerMoney(pot.amount());
-        if ( sidePots.size() != 0 ) {
-            for ( int i = 0; i < sidePots.size(); i++ ) {
+        int sidePotsSize = sidePots.size();
+        if (sidePotsSize != 0) {
+            for (int i= 0;i<sidePotsSize;i++) {
                 winnersTake.subtract(sidePots.get(i).getPot().amount());
             }
         }
 
-        if ( numWinners == 1 ) {
+        if (numWinners == 1) {
             playerList.get(highPlayer).add(winnersTake.amount());
         } else {
-            PokerMoney money = new PokerMoney( winnersTake.amount() / (float)numWinners);
+            PokerMoney money = new PokerMoney(winnersTake.amount()/(float)numWinners);
             playerList.get(winner[0]).add(money.amount());
-            for ( int i = 1; i < numWinners; i++ ) {
+            for (int i=1;i<numWinners;i++) {
                 playerList.get(winner[i]).add(money.amount());
             }
         }
         
-        for (int i = 0; i < sidePots.size(); i++) {
+        for (int i = 0; i < sidePotsSize; i++) {
             calcSidePotWinners(i);
         }
     }
@@ -301,11 +377,11 @@ public class TexasHoldEm {
         float highHand = 0.0f;
         String winningHand = new String();
         int numWinners = 0;
-        SidePot side = (SidePot)sidePots.get(potNumber);
+        SidePot side = sidePots.get(potNumber);
         PokerMoney pot = side.getPot();
-        String [] players = new String[side.getIncluded().size()];
+        Long[] players = new Long[side.getIncluded().size()];
         for (int i = 0; i < players.length; i++ ) {
-            players[i] = (String)side.getIncluded().get(i);
+            players[i] = side.getIncluded().get(i);
         }
 
         int winner[] = new int[MAX_PLAYERS];
@@ -313,7 +389,8 @@ public class TexasHoldEm {
 
         int numPlayers = 0;
         List<Integer> playerIdxList = new ArrayList<Integer>();
-        for ( int i = 0; i < players.length; i++ ) {
+        int len = players.length;
+        for (int i=0;i<len;i++) {
             if ( players[i] != null ) {
             	int idx = playerIndex(players[i]);
                 if (idx >= 0) {
@@ -323,7 +400,7 @@ public class TexasHoldEm {
             }
         }
 
-        if ( numPlayers == 1 ) {
+        if (numPlayers == 1) {
             int pindex = playerIdxList.get(0);
             playerList.get(pindex).add(pot.amount());
         }
@@ -337,21 +414,21 @@ public class TexasHoldEm {
                 highPlayer = idx;
             }
         }
-        for ( int i = 0; i < numPlayers; i++ ) {
+        for (int i=0;i<numPlayers;i++) {
             Player p = playerList.get(playerIdxList.get(i));
-            if ( newPlayerHandValues[i] == highHand ) {
+            if (newPlayerHandValues[i] == highHand) {
                 winner[numWinners] = playerIdxList.get(i);
                 numWinners++;
             }
         }
-        winningHand = HandEvaluator.nameHand( highHand );
+        winningHand = HandEvaluator.nameHand(highHand);
 
         PokerMoney winnersTake = new PokerMoney(pot.amount());
 
         if (numWinners == 1) {
             playerList.get(highPlayer).add(winnersTake.amount());
         } else {
-            PokerMoney money = new PokerMoney(winnersTake.amount() / (float)numWinners);
+            PokerMoney money = new PokerMoney(winnersTake.amount()/(float)numWinners);
             playerList.get(winner[0]).add(money.amount());
             for ( int i = 1; i < numWinners; i++ ) {
                 playerList.get(winner[i]).add(money.amount());
@@ -359,13 +436,9 @@ public class TexasHoldEm {
         }
     }
     
-    public int playerIndex( String name ) {
-        if ( name == null ) {
-            return -1;
-        }
-        for ( int i=0; i < playerList.size(); i++ ) {
-            String pname = ((Player)playerList.get(i)).getName();
-            if ( name.equals( pname ) ) {
+    public int playerIndex(long userId) {
+        for (int i=0;i<playerList.size();i++) {
+            if (userId == playerList.get(i).getUserId()) {
                 return i;
             }
         }
@@ -435,6 +508,8 @@ public class TexasHoldEm {
     
     private void nullifyGame() {
         inGame = false;
+        smallBlindSeat = -1;
+        bigBlindSeat = -1;
     }
     
     /**********************
@@ -443,85 +518,85 @@ public class TexasHoldEm {
      * @return The integer player index of the player who will be betting first
      *
      **/
-        private int firstToBet() {
-        	int dealerSeat = playerList.get(dealerIndex).seat;
-            if (actionNum == 1) {
-                int prevSeat = nextSeat(dealerSeat);
-                prevSeat = nextSeat(prevSeat);
-                if (playerList.size() == 2) {
-                    return getPlayerInSeat(dealerSeat);
-                } else {
-                    return getPlayerInSeat(nextSeat(prevSeat));
-                }
+    private int firstToBet() {
+    	int dealerSeat = playerList.get(dealerIndex).seat;
+        if (actionNum == 1) {
+            int prevSeat = nextSeat(dealerSeat);
+            prevSeat = nextSeat(prevSeat);
+            if (playerList.size() == 2) {
+                return getPlayerInSeat(dealerSeat);
             } else {
-                if (dealerSeat < 0) {
-                    return -9;
-                }
-                int prevSeat = nextSeat( dealerSeat );
-                int pindex = getPlayerInSeat( prevSeat );
-                if ( ( pindex >= 0 ) && ( pindex < playerList.size() ) ) {
-                    while (!(playerList.get(pindex)).in) {
-                        prevSeat = nextSeat(prevSeat);
-                        pindex = getPlayerInSeat(prevSeat);  
-                        if ((pindex < 0) || (pindex >= playerList.size())) {
-                        	return -9;
-                        }
-                    }
-                    return pindex;
-                }
+                return getPlayerInSeat(nextSeat(prevSeat));
+            }
+        } else {
+            if (dealerSeat < 0) {
                 return -9;
             }
+            int prevSeat = nextSeat( dealerSeat );
+            int pindex = getPlayerInSeat( prevSeat );
+            if ( ( pindex >= 0 ) && ( pindex < playerList.size() ) ) {
+                while (!(playerList.get(pindex)).in) {
+                    prevSeat = nextSeat(prevSeat);
+                    pindex = getPlayerInSeat(prevSeat);  
+                    if ((pindex < 0) || (pindex >= playerList.size())) {
+                    	return -9;
+                    }
+                }
+                return pindex;
+            }
+            return -9;
         }
+    }
     
-        /***********************
-         * nextSeat() is used by nextDealer to find the next occupied seat
+    /***********************
+     * nextSeat() is used by nextDealer to find the next occupied seat
+     *
+     * @param currSeat The seat from which to find the next
+     * @return The next occupied seat after currSeat
+     *
+     **/
+        public int nextSeat( int currSeat ) {
+            if ( ( currSeat < 0 ) || ( currSeat >= MAX_PLAYERS ) ) {
+                return -9;
+            }
+            for ( int i = currSeat+1; i < MAX_PLAYERS; i++ ) {
+                int pindex = getPlayerInSeat(i);
+                if ( pindex != -9 ) {
+                	 if(playerList.get(pindex).in) {
+                		 return i;
+                	 }
+                }
+            }
+            for ( int j = 0; j < currSeat; j++ ) {
+                int pindex = getPlayerInSeat(j);
+                if ( pindex != -9 ) {
+                	if(playerList.get(pindex).in) {
+               		 	return j;
+               	 	}
+                }
+            }
+            return -9;
+        }
+        
+        
+        /***************************
+         * getPlayerInSeat() returns the number of the player currently occupying the seat in question
          *
-         * @param currSeat The seat from which to find the next
-         * @return The next occupied seat after currSeat
+         * @param s The seat number which is being inquired.
+         * @return The player index which is their location in playerList.
          *
          **/
-            public int nextSeat( int currSeat ) {
-                if ( ( currSeat < 0 ) || ( currSeat >= MAX_PLAYERS ) ) {
-                    return -9;
-                }
-                for ( int i = currSeat+1; i < MAX_PLAYERS; i++ ) {
-                    int pindex = getPlayerInSeat(i);
-                    if ( pindex != -9 ) {
-                    	 if(playerList.get(pindex).in) {
-                    		 return i;
-                    	 }
-                    }
-                }
-                for ( int j = 0; j < currSeat; j++ ) {
-                    int pindex = getPlayerInSeat(j);
-                    if ( pindex != -9 ) {
-                    	if(playerList.get(pindex).in) {
-                   		 	return j;
-                   	 	}
-                    }
-                }
+        public int getPlayerInSeat( int s ) {
+            if ( ( s < 0 ) || ( s >= MAX_PLAYERS) ) {
                 return -9;
             }
-            
-            
-            /***************************
-             * getPlayerInSeat() returns the number of the player currently occupying the seat in question
-             *
-             * @param s The seat number which is being inquired.
-             * @return The player index which is their location in playerList.
-             *
-             **/
-            public int getPlayerInSeat( int s ) {
-                if ( ( s < 0 ) || ( s >= MAX_PLAYERS) ) {
-                    return -9;
+            for ( int i = 0; i < playerList.size(); i++ ) {
+                if ( s == playerList.get(i).seat ) {
+                    return i;
                 }
-                for ( int i = 0; i < playerList.size(); i++ ) {
-                    if ( s == playerList.get(i).seat ) {
-                        return i;
-                    }
-                }
-                return -9;
             }
+            return -9;
+        }
         
     /***********************
      * bestHand() returns the float value of the best possible hand that can be made from given hand h.
@@ -609,11 +684,16 @@ public class TexasHoldEm {
 	    /**********************
 	     * bet() is called whenever a player bets.  This is a hugely complicated function, but it works pretty well I think.
 	     **/
-        private void bet() {
+        private void bet(long userId, float bet) {
             int size = playerList.size();
             Player currPlayer = playerList.get(currPlayerIndex);
-            float betS = currPlayer.getBet().amount();
+            currPlayer.setBet(bet);
+            if(currPlayer.getUserId() != userId) {
+            	System.out.println("bad request!");
+            	return;
+            }
             float betP = currPlayer.getPrevBet().amount();
+            float betS = currPlayer.getBet().amount();
             if ( currPlayer.getBankroll().compareTo( new PokerMoney() ) == 1 ) {
                 currPlayer.allin = false;
             }
@@ -623,10 +703,10 @@ public class TexasHoldEm {
             if ( ( ( betP + betS  ) < currBet.amount() ) && ( !currPlayer.allin ) ) {
                 if ( ( currBet.amount() - betP ) >= currPlayer.getBankroll().amount() ) {
                     System.out.println("You must go all in to match the bet.");
-                    //TODO
+                    return;
                 } else {
                     System.out.println("You must bet at least " + new PokerMoney( currBet.amount() - betP ) + " to call.");
-                    //TODO
+                    return;
                 }
             } else {
                 boolean    potOK = true;
@@ -634,7 +714,7 @@ public class TexasHoldEm {
                 PokerMoney raise = new PokerMoney( betS + betP - currBet.amount() );
                 if ( ( betS + betP ) > currBet.amount() ) {
                     if ( currPlayer.allin ) {
-                        System.out.println(currPlayer.getName() + " went All In!");
+                        System.out.println(currPlayer.getUserId() + " went All In!");
                         if ( initialBet.amount() == 0.0f ) {
                             initialBet = new PokerMoney( raise.amount() );
                         }
@@ -642,9 +722,9 @@ public class TexasHoldEm {
                     } else if ( currBet.amount() == 0.0f ) {
                         if ( raise.compareTo( minimumBet ) == -1 ) {
                             System.out.println("You must bet the minimum bet of at least " + minimumBet);
-                            //TODO
+                            return;
                         } else {
-                            System.out.println(currPlayer.getName() + " bet " + raise + ".");
+                            System.out.println(currPlayer.getUserId() + " bet " + raise + ".");
                             //TODO
                             initialBet = new PokerMoney(raise.amount());
                             betOK = true;
@@ -652,9 +732,9 @@ public class TexasHoldEm {
                     } else {
                         if ( raise.amount() < initialBet.amount() ) {
                             System.out.println("If you wish to raise, you must raise by at least " + initialBet);
-                            //TODO
+                           	return;
                         } else {
-                            System.out.println(currPlayer.getName() + " raised " + raise + ".");
+                            System.out.println(currPlayer.getUserId() + " raised " + raise + ".");
                             //TODO
                             betOK = true;
                         }
@@ -669,12 +749,11 @@ public class TexasHoldEm {
                         if ( currPlayer.getBankroll().compareTo( new PokerMoney(MINIMUM) ) == -1 ) {
                             currPlayer.allin = true;
                         }
-                        playerList.set(currPlayerIndex,currPlayer);
 //               
 //                  New side pot may need to be created if this player bet more than one or more other player's have in their bankroll.
 //                
                         boolean newSidePot = false;
-                        for ( int i = 0; i < playerList.size(); i++ ) {
+                        for ( int i = 0; i < size; i++ ) {
                         	Player player = playerList.get(i);
                             if(player.in && ((player.getBankroll().amount() + player.getPrevBet().amount()) < (betS+betP))) {
                                 newSidePot = true;
@@ -690,9 +769,9 @@ public class TexasHoldEm {
 //                             
                             int lastPot = sidePots.size() - 1;
                             if ( lastPot >= 0 ) {
-                                ArrayList<String> incLst = sidePots.get(lastPot).getIncluded();
+                                List<Long> incLst = sidePots.get(lastPot).getIncluded();
                                 float tc = sidePots.get(lastPot).toCall[currPlayerIndex].amount();
-                                if ( incLst.contains(currPlayer.getName())) {
+                                if ( incLst.contains(currPlayer.getUserId())) {
                                     sidePots.get(lastPot).addMoney( tc + raise.amount());
                                     for ( int i = 0; i < size; i++ ) {
                                         sidePots.get(lastPot).toCall[i].add( raise.amount() );
@@ -703,9 +782,9 @@ public class TexasHoldEm {
 //                      Must loop through previous pots to make sure toCall is satisfied.
 //                              
                                 for ( int i = 0; i < lastPot; i++ ) {
-                                    ArrayList<String> incLst2 = sidePots.get(i).getIncluded();
+                                    List<Long> incLst2 = sidePots.get(i).getIncluded();
                                     float tc2 = sidePots.get(i).toCall[currPlayerIndex].amount();
-                                    if ( incLst2.contains( currPlayer.getName() ) ) {
+                                    if ( incLst2.contains( currPlayer.getUserId())) {
                                         sidePots.get(i).addMoney( tc2 );
                                         sidePots.get(i).toCall[currPlayerIndex] = new PokerMoney();
                                     }
@@ -716,8 +795,8 @@ public class TexasHoldEm {
                             float amount =  betS - sidePots.get(newPot).getPot().amount();
                             for ( int i = 0; i < sidePots.size()-1; i++ ) {
                                 SidePot sp = sidePots.get(i);
-                                ArrayList<String> incLst = sp.getIncluded();
-                                if ( ( incLst.contains( currPlayer.getName() ) ) && ( sp.toCall[currPlayerIndex].amount() > 0.0f ) ) {
+                                List<Long> incLst = sp.getIncluded();
+                                if ( ( incLst.contains( currPlayer.getUserId()) ) && ( sp.toCall[currPlayerIndex].amount() > 0.0f ) ) {
                                     float amt = 0.0f;
                                     if ( i == sidePots.size()-2 ) {
                                         float tc = sp.toCall[currPlayerIndex].amount();
@@ -762,7 +841,6 @@ public class TexasHoldEm {
                     if ( currPlayer.getBankroll().compareTo( new PokerMoney( MINIMUM) ) == -1 ) {
                         currPlayer.allin = true;
                     }
-                    playerList.set(currPlayerIndex,currPlayer);
                     for ( int i = 0; i < size; i++ ) {
                     	Player player = playerList.get(i);
                         if (player.in && !player.potOK && !player.allin) {
@@ -775,8 +853,8 @@ public class TexasHoldEm {
                     float amount = betS;
                     for ( int i = 0; i < sidePots.size(); i++ ) {
                         SidePot sp = sidePots.get(i);
-                        ArrayList<String> incLst = sp.getIncluded();
-                        if ( ( incLst.contains( currPlayer.getName() ) ) && ( sp.toCall[currPlayerIndex].amount() > 0.0f ) ) {
+                        List<Long> incLst = sp.getIncluded();
+                        if ( ( incLst.contains( currPlayer.getUserId()) ) && ( sp.toCall[currPlayerIndex].amount() > 0.0f ) ) {
                             float amt = 0.0f;
                             if ( amount > sp.toCall[currPlayerIndex].amount() ) {
                                 amt = sp.toCall[currPlayerIndex].amount();
@@ -789,10 +867,10 @@ public class TexasHoldEm {
                         }
                     }
                     if ( currPlayer.allin ) {
-                        System.out.println(currPlayer.getName() + " went All In!");
+                        System.out.println(currPlayer.getUserId() + " went All In!");
                         betOK = true;
                     } else if ( currBet.amount() == 0.0f ) {
-                        System.out.println(currPlayer.getName() + " checked.");
+                        System.out.println(currPlayer.getUserId() + " checked.");
                         betOK = true;
                     } else {
                         betOK = true;
@@ -842,8 +920,72 @@ public class TexasHoldEm {
                     }
                 }
             }
+            print();
         }
         
+        private void passBet(long userId) {
+        	int size = playerList.size();
+            Player currPlayer = playerList.get(currPlayerIndex);
+            if(currPlayer.getUserId() != userId) {
+            	System.out.println("bad request!");
+            	return;
+            }
+            currPlayer.potOK = true;
+            
+            boolean potOK = true;
+            
+            for (int i=0;i<size;i++) {
+            	Player player = playerList.get(i);
+                if (player.in && !player.potOK && !player.allin) {
+                    potOK = false;
+                }
+            }
+            
+            if (!potOK ) {
+                int prevSeat = currPlayer.seat;     
+                boolean foundNext = false;
+                while ( !foundNext ) {
+                    prevSeat = nextSeat(prevSeat);
+                    int playerIdx = getPlayerInSeat(prevSeat);
+                    Player player = playerList.get(playerIdx);
+                    if (player.in && !player.allin) {
+                        foundNext = true;
+                        currPlayerIndex = getPlayerInSeat(prevSeat);
+                    }
+                }
+                if ( ( actionNum+1 ) <= maxActionNum ) {
+                    //TODO
+                } else {
+                   //TODO
+                }
+            }
+
+            if (true) {
+                int allins = 0, ins = 0;
+                for (int i=0;i<size;i++) {
+                	Player player = playerList.get(i);
+                	if(player.allin) {
+                        allins++;
+                    }
+                    if (player.in) {
+                    	ins++;
+                    }
+                }
+                if (allins >= (ins-1)) {
+                    if (potOK) {
+                        while (actionNum < maxActionNum) {
+                            endAction();
+                        }
+                    }
+                } else {
+                    if (potOK) { 
+                    	endAction();
+                    }
+                }
+            }
+            
+            print();
+        }
         
         /**********************
          * endAction() is used to clean up the current round of action and call the game defined nextAction() function.
@@ -872,18 +1014,18 @@ public class TexasHoldEm {
 //            First need to order players in a list of how much they have relative to how much they owe.
     //
             int size = playerList.size();
-            String[] names = new String[size];
+            long[] names = new long[size];
             float[] amounts = new float[size];
             int count = 0;
             for ( int i = 0; i < size; i++ ) {
                 Player p = playerList.get(i);
                 if ( p.in ) {
-                    names[count] = new String( p.getName() );
+                    names[count] = p.getUserId();
                     amounts[count] = p.getBankroll().amount() + p.getPrevBet().amount()- bet;
                     count++;
                 }
             }
-            String tempN = new String();
+            long tempN = -1L;
             float tempA = 0.0f;
             for ( int i = 0; i < count; i++ ) {
                 for ( int j = i; j < count; j++ ) {
@@ -902,8 +1044,8 @@ public class TexasHoldEm {
     //
             for ( int i = 0; i < count; i++ ) {
                 if ( amounts[i] < 0 ) {
-                    ArrayList<String> excludedList = new ArrayList<String>();
-                    ArrayList<String> includedList = new ArrayList<String>();
+                    List<Long> excludedList = new ArrayList<Long>();
+                    List<Long> includedList = new ArrayList<Long>();
                     float amount = -amounts[i];
                     for ( int j = i+1; j < count; j++ ) {
                         if ( amounts[j] < 0.0f ) {
@@ -920,9 +1062,10 @@ public class TexasHoldEm {
 //                Do not create a side pot with the exact same list of excluded players - that side pot will be redundant
     //
                     boolean needToCreate = true;
-                    for ( int j = 0; j < sidePots.size(); j++ ) {
+                    int sidePotsSize =  sidePots.size();
+                    for ( int j = 0; j < sidePotsSize; j++ ) {
                         boolean listsSame = true;
-                        ArrayList<String> spExLst = sidePots.get(j).getExcluded();
+                        List<Long> spExLst = sidePots.get(j).getExcluded();
                         if ( excludedList.size() != spExLst.size() ) {
                             listsSame = false;
                         } else {
@@ -947,6 +1090,38 @@ public class TexasHoldEm {
 
         
     public static void main(String[] args) {
-		TexasHoldEm texasHoldEm = new TexasHoldEm();
+    	int roomId = 100015;
+		TexasHoldEm texasHoldEm = new TexasHoldEm(roomId);
+		texasHoldEm.attend(1L, 0, 100);
+		texasHoldEm.attend(2L, 1, 80);
+		texasHoldEm.attend(3L, 2, 90);
+		texasHoldEm.attend(4L, 3, 50);
+		texasHoldEm.bet(4, 30);
+		texasHoldEm.bet(1, 50);
+		texasHoldEm.bet(2, 40);
+		texasHoldEm.bet(3, 40);
+		texasHoldEm.bet(4, 20);
+		texasHoldEm.bet(1, 10);
+		texasHoldEm.bet(2, 10);
+		
+		texasHoldEm.bet(2, 20);
+		texasHoldEm.bet(3, 30);
+		texasHoldEm.bet(1, 30);
+		/*
+		texasHoldEm.passBet(2);
+		texasHoldEm.passBet(3);
+		texasHoldEm.passBet(4);
+		texasHoldEm.passBet(1);
+		
+		texasHoldEm.passBet(2);
+		texasHoldEm.passBet(3);
+		texasHoldEm.passBet(4);
+		texasHoldEm.passBet(1);
+		
+		texasHoldEm.passBet(2);
+		texasHoldEm.passBet(3);
+		texasHoldEm.passBet(4);
+		texasHoldEm.passBet(1);
+		*/
 	}
 }

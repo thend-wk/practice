@@ -1,19 +1,20 @@
 package com.thend.home.sweethome.texasholdem;
 
 import java.util.ArrayList;
+import java.util.List;
 
 public class SidePot {
 
     private   PokerMoney   pot;                  // Amount of money in this side pot
-    private   ArrayList<String> included;             // List of player names eligble to win this pot
-    private   ArrayList<String> excluded;             // List of player names not-elible to win this pot.
+    private   List<Long> included;             // List of player names eligble to win this pot
+    private   List<Long> excluded;             // List of player names not-elible to win this pot.
     public    PokerMoney[] toCall;               // Amount required to call this side pot.
 
     
 	//----------------------
 	//Constructor
 	//
-    public SidePot( ArrayList<String> in, ArrayList<String> out,
+    public SidePot( List<Long> in, List<Long> out,
     		float amount, int playerSize, int currPlayerIndex) {
         included = in;
         excluded = out;
@@ -51,14 +52,14 @@ public class SidePot {
 	//----------------------
 	//getIncluded() is used to access the private class variable
 	//
-    public ArrayList<String> getIncluded() {
+    public List<Long> getIncluded() {
         return included;
     }
 
 	//----------------------
 	//getExcluded() is used to access the private class variable
 	//
-    public ArrayList<String> getExcluded() {
+    public List<Long> getExcluded() {
         return excluded;
     }
 }

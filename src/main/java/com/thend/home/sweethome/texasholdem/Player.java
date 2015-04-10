@@ -76,7 +76,7 @@ public class Player {
         bet = new PokerMoney();
         prevBet = new PokerMoney();
         in = false;
-        potOK = true;
+        potOK = false;
         this.userId = userId;
         this.seat = seat;
     }

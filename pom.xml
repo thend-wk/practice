@@ -25,7 +25,7 @@
 		<groupId>org.codehaus</groupId>
 		<artifactId>jackson-all</artifactId>
 		<version>1.6.2</version>
-	</dependency>		
+	</dependency>	
 	<dependency>
 		<groupId>commons-lang</groupId>
 		<artifactId>commons-lang</artifactId>
@@ -91,7 +91,6 @@
   <build>
   	<pluginManagement>
   		<plugins>
-  			<!--This plugin's configuration is used to store Eclipse m2e settings only. It has no influence on the Maven build itself.-->
   			<plugin>
   				<groupId>org.eclipse.m2e</groupId>
   				<artifactId>lifecycle-mapping</artifactId>

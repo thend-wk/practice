@@ -4,12 +4,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-import net.sourceforge.pokerapp.Player;
-import net.sourceforge.pokerapp.PokerMoney;
-import net.sourceforge.pokerapp.PokerMultiServerThread;
-import net.sourceforge.pokerapp.PokerProtocol;
-import net.sourceforge.pokerapp.ai.AIApp;
-
 import com.gs.collections.impl.map.mutable.ConcurrentHashMap;
 
 /**
@@ -66,9 +60,12 @@ public class TexasHoldEm {
 	private PokerMoney initialBet;
 	// minimum
 	private PokerMoney minimumBet;
-	//首次盲注
-    public         boolean              firstBlindGamePlayed;
-
+	// 首次盲注
+	private boolean firstBlindGamePlayed;
+	// 离开玩家
+	private List<Long> leavingPlayerList;
+	// 上一轮玩家
+	private List<Long> playedInLastGame;
 	// empty值
 	private float MINIMUM = 0.01f;
 	// 小盲注值
@@ -80,6 +77,7 @@ public class TexasHoldEm {
 
 	/**
 	 * 构造方法
+	 * 
 	 * @param roomId
 	 */
 	public TexasHoldEm(int roomId) {
@@ -98,8 +96,9 @@ public class TexasHoldEm {
 		seatPlayerMap = new ConcurrentHashMap<Integer, Player>(MAX_PLAYERS);
 		playerLock = new ReentrantReadWriteLock();
 		sidePots = new ArrayList<SidePot>(MAX_PLAYERS - 1);
+		playedInLastGame = new ArrayList<Long>(MAX_PLAYERS);
+		leavingPlayerList = new ArrayList<Long>();
 	}
-	
 
 	/**
 	 * 打印日志
@@ -131,99 +130,89 @@ public class TexasHoldEm {
 		}
 	}
 
-
 	/**
 	 * 开始新一轮游戏
 	 */
-	private void begin() {
+	private boolean begin() {
+		if (inGame || playerList.size() < 2) {
+			return false;
+		}
 		inGame = true;
 		deck.shuffle();
 		float bl = blind();
-        if (bl <= 0.0f ) {
-            return;
-        }
-        pot.add( bl );
-        firstBlindGamePlayed = true;
-        actionNum++;
+		if (bl <= 0.0f) {
+			return false;
+		}
+		pot.add(bl);
+		firstBlindGamePlayed = true;
+		actionNum++;
 		deal();
-		
-        currPlayerIndex = firstToBet();
-        if ( ( currPlayerIndex < 0 ) || ( currPlayerIndex >= MAX_PLAYERS ) ) {
-            return;
-        }
+
+		currPlayerIndex = firstToBet();
+		if ((currPlayerIndex < 0) || (currPlayerIndex >= MAX_PLAYERS)) {
+			return false;
+		}
 		// TODO 广播
 		print();
+		return true;
 	}
-	
-	
-	   protected boolean checkForCash( float amount ) {
-	        theApp.log( "PokerGame.checkForCash( " + amount + " )", 3 );
-	        ArrayList playersToRemove = new ArrayList();
-	        boolean needNewDealer = false;
 
-	        for ( int i = 0; i < theApp.getPlayerList().size(); i++ ) {
-	            Player P = (Player)theApp.getPlayerList().get(i);
-	            if ( P.getBankroll().amount() < amount ) {
-	                if ( theApp.getServerWindow() != null ) {
-	                    theApp.getServerWindow().sendMessage( P.getName() + " does not have enough money to play!" );
-	                } else {
-	                    System.out.println( P.getName() + " does not have enough money to play!" );
-	                }
-	                theApp.log( "" + P.getName() + " does not have enough money to play", 1 );
-	                theApp.broadcastMessage( "MESSAGE &" + P.getName() + " does not have enough money to play!" );
-	                String message = PokerProtocol.makeString( new String( "MESSAGE &You don't have enough money.  Good Bye." ) );
-	                ((PokerMultiServerThread)theApp.getServerThreadList().get( theApp.serverThreadFromPlayerIndex(i) )).getStreamOut().println( message );
-	                playersToRemove.add( P.getName() );
-	            }
-	        }
-	        for ( int i = 0; i< playersToRemove.size(); i++ ) {
-	            for ( int j = 0; j < theApp.getAIApps().size(); j++ ) {
-	                if ( ((String)playersToRemove.get(i)).equals( ((AIApp)theApp.getAIApps().get(j)).getThisPlayer().getName() ) ) {
-	                    int st = theApp.serverThreadFromPlayerIndex( theApp.playerIndex( (String)playersToRemove.get(i) ) );
-	                    if ( st >= 0 ) {
-	                        ((PokerMultiServerThread)theApp.getServerThreadList().get( st )).stopRunning();
-	                        theApp.getServerThreadList().remove( st );
-	                        theApp.getServerThreadList().trimToSize();
-	                    }
-	                    ((AIApp)theApp.getAIApps().get(j)).disconnectSocket();
-	                }
-	            }
-	            theApp.dropPlayer( (String)playersToRemove.get(i) );
-	            theApp.broadcastMessage( "PLAYER REMOVE  &" + (String)playersToRemove.get(i) );
-	            if ( ((String)playersToRemove.get(i)).equals( theApp.dealer.getName() ) ) {
-	                needNewDealer = true; 
-	            }
-	        }
-	        theApp.playersRemoved = new ArrayList();
-	        if ( needNewDealer ) {
-	            Player prevDealer = theApp.lastDealer;
-	            theApp.nextDealer();
-	            theApp.lastDealer = prevDealer;
-	            needNewDealer = false;
-	        }
-	        if ( playersToRemove.size() > 0 ) {
-	            int dind = theApp.playerIndex( theApp.dealer.getName() );
-	            if ( dind != theApp.dealerIndex ) {
-	                theApp.dealerIndex = dind;
-	                theApp.dealer = (Player)theApp.getPlayerList().get(dind);
-	                theApp.broadcastMessage( "DEALER  &" + theApp.dealer.getName() );
-	                theApp.broadcastMessage( "REFRESH" );
-	            }
-	        }
-	        playersToRemove = new ArrayList();
-	        if ( theApp.getPlayerList().size() < 2 ) {
-	            if ( theApp.getServerWindow() != null ) {
-	                theApp.getServerWindow().sendMessage( "Need more people to play!" );
-	            } else {
-	                System.out.println( "Need more people to play!" );
-	            }
-	            theApp.log( "Need more people to play", 1 );
-	            theApp.broadcastMessage( "MESSAGE &Need more people to play!" );
-	            return false;
-	        }
-	        return true;
-	    }
-	
+	protected boolean checkForCash(float amount) {
+		List<Long> playersToRemove = new ArrayList<Long>();
+		int size = playerList.size();
+		boolean needNewDealer = false;
+
+		for (int i = 0; i < size; i++) {
+			Player player = playerList.get(i);
+			if (player.getBankroll().amount() < amount) {
+				System.out.println(player.getUserId()
+						+ " does not have enough money to play!");
+				playersToRemove.add(player.getUserId());
+			}
+		}
+		int removeSize = playersToRemove.size();
+		Player dealer = playerList.get(dealerIndex);
+		for (int i = 0; i < removeSize; i++) {
+			long removedUserId = playersToRemove.get(i);
+			dropPlayer(removedUserId);
+			if (removedUserId == dealer.getUserId()) {
+				needNewDealer = true;
+			}
+		}
+		if (needNewDealer) {
+			nextDealer();
+			needNewDealer = false;
+		}
+		if (removeSize > 0) {
+			int dind = playerIndex(dealer.getUserId());
+			if (dind != dealerIndex) {
+				dealerIndex = dind;
+			}
+		}
+		playersToRemove.clear();
+		if (size < 2) {
+			System.out.println("Need more people to play!");
+			return false;
+		}
+		return true;
+	}
+
+	/***************************
+	 * dropPlayer() removes a player from the game.
+	 *
+	 * @param n
+	 *            The player name to drop
+	 *
+	 **/
+	public void dropPlayer(long userId) {
+		int index = playerIndex(userId);
+		if (index != -1) {
+			playerList.remove(index);
+			System.out
+					.println("Player " + userId + " removed from playerList.");
+		}
+	}
+
 	/**
 	 * 加入游戏
 	 * 
@@ -232,22 +221,14 @@ public class TexasHoldEm {
 	 * @return
 	 */
 	public boolean attend(long userId, int seat) {
-		playerLock.writeLock().lock();
-		try {
-			if (seatPlayerMap.contains(seat)) {
-				return false;
-			}
-			Player player = new Player(userId, seat);
-			player.setBankroll(ANTE);
-			playerList.add(player);
-			seatPlayerMap.put(seat, player);
-		} finally {
-			playerLock.writeLock().unlock();
+		if (seatPlayerMap.contains(seat)) {
+			return false;
 		}
-		if (!inGame && playerList.size() >= 2) {
-			begin();
-		}
-		return true;
+		Player player = new Player(userId, seat);
+		player.setBankroll(ANTE);
+		playerList.add(player);
+		seatPlayerMap.put(seat, player);
+		return begin();
 	}
 
 	/**
@@ -259,95 +240,91 @@ public class TexasHoldEm {
 	 * @return
 	 */
 	public boolean attend(long userId, int seat, int bankRoll) {
-		playerLock.writeLock().lock();
-		try {
-			if (seatPlayerMap.contains(seat)) {
-				return false;
-			}
-			Player player = new Player(userId, seat);
-			player.setBankroll(bankRoll);
-			playerList.add(player);
-			seatPlayerMap.put(seat, player);
-		} finally {
-			playerLock.writeLock().unlock();
+		if (seatPlayerMap.contains(seat)) {
+			return false;
 		}
-		if (!inGame && playerList.size() >= 2) {
-			begin();
-		}
-		return true;
+		Player player = new Player(userId, seat);
+		player.setBankroll(bankRoll);
+		playerList.add(player);
+		seatPlayerMap.put(seat, player);
+		return begin();
 	}
 
 	/**********************
-	 *  blind() function is similar to the ante function in that it takes the blinds and puts that amount in the pot
+	 * blind() function is similar to the ante function in that it takes the
+	 * blinds and puts that amount in the pot
 	 *
 	 * @return Thr amount of blinds collected.
 	 *
 	 **/
-	    public float blind() {
-	    	int size = playerList.size();
-	        float r = 0.0f;
+	public float blind() {
+		int size = playerList.size();
+		float r = 0.0f;
 
-	        if ( !checkForCash( smallBlind.amount() * 2.0f ) ) {
-	            return r;
-	        }
-	        
-	        int dealerSeat = playerList.get(dealerIndex).seat;
-	        if ( playerList.size() == 2 ) {
-	            smallBlindSeat = dealerSeat;
-	        } else {
-	            smallBlindSeat = nextSeat( dealerSeat );
-	        }
+		if (!checkForCash(smallBlind.amount() * 2.0f)) {
+			return r;
+		}
 
-	        bigBlindSeat = nextSeat( smallBlindSeat );
-	        int smallIndex = getPlayerInSeat( smallBlindSeat );
-	        int bigIndex = getPlayerInSeat( bigBlindSeat ); 
-	    
-	        Player smallPlayer = playerList.get(smallIndex);
-	        Player bigPlayer = playerList.get(bigIndex);
-	    
-	        smallPlayer.subtract(smallBlind.amount() );
-	        smallPlayer.setPrevBet( smallBlind.amount() );
-	        r = r + smallBlind.amount();
-	     
-	        bigPlayer.subtract( 2.0f*smallBlind.amount() );
-	        bigPlayer.setPrevBet( 2.0f*smallBlind.amount() );
-	        r = r + 2.0f*smallBlind.amount();
-	        currBet = new PokerMoney( 2.0f*smallBlind.amount() );
-	        for ( int i = 0; i < size; i++ ) {
-	            playerList.get(i).in = true;
-	//
-//	      Check for players who have just joined the game.  If they are new to the table, they must pay the big blind.
-	//
-	            if ( firstBlindGamePlayed ) {
-	                if ( !theApp.playedInLastGame.contains( (String)((Player)theApp.getPlayerList().get(i)).getName() ) ) {
-	                    if ( i == smallIndex ) {
-	//
-//	          If the player is already the small blind, they only have to pay another small blind amount
-	//
-	                        ((Player)theApp.getPlayerList().get(smallIndex)).subtract( theApp.smallBlind.amount() );
-	                        ((Player)theApp.getPlayerList().get(smallIndex)).setPrevBet( 2.0f*theApp.smallBlind.amount() );
-	                        r = r + theApp.smallBlind.amount();
-	                        theApp.broadcastMessage( "PLAYER CALL  &" + smallPlayer.getName() + "&Big Blind = " + currBet + "&" + smallPlayer.getBankroll().amount() );
-	                    } else if ( i == bigIndex ) {
-	//
-//	          No need to do anything if they are already in the big blind position.
-	//
-	                    } else {
-	                        ((Player)theApp.getPlayerList().get(i)).subtract( 2.0f*theApp.smallBlind.amount() );
-	                        ((Player)theApp.getPlayerList().get(i)).in = true;
-	                        ((Player)theApp.getPlayerList().get(i)).setPrevBet( 2.0f*theApp.smallBlind.amount() );
-	                        r = r + 2.0f*theApp.smallBlind.amount();
-	                        theApp.broadcastMessage( "PLAYER CALL  &" + ((Player)theApp.getPlayerList().get(i)).getName() + "&Big Blind = " + currBet + "&" + ((Player)theApp.getPlayerList().get(i)).getBankroll().amount() );
-	                    }
-	                }
-	            }  
-	        }
-	        initialBet = new PokerMoney( 2.0f*theApp.smallBlind.amount() );
-	        return r;
-	    }
-	
+		int dealerSeat = playerList.get(dealerIndex).seat;
+		if (playerList.size() == 2) {
+			smallBlindSeat = dealerSeat;
+		} else {
+			smallBlindSeat = nextSeat(dealerSeat);
+		}
+
+		bigBlindSeat = nextSeat(smallBlindSeat);
+		int smallIndex = getPlayerInSeat(smallBlindSeat);
+		int bigIndex = getPlayerInSeat(bigBlindSeat);
+
+		Player smallPlayer = playerList.get(smallIndex);
+		Player bigPlayer = playerList.get(bigIndex);
+
+		smallPlayer.subtract(smallBlind.amount());
+		smallPlayer.setPrevBet(smallBlind.amount());
+		r = r + smallBlind.amount();
+
+		bigPlayer.subtract(2.0f * smallBlind.amount());
+		bigPlayer.setPrevBet(2.0f * smallBlind.amount());
+		r = r + 2.0f * smallBlind.amount();
+		currBet = new PokerMoney(2.0f * smallBlind.amount());
+		for (int i = 0; i < size; i++) {
+			Player player = playerList.get(i);
+			player.in = true;
+			//
+			// Check for players who have just joined the game. If they are new
+			// to the table, they must pay the big blind.
+			//
+
+			if (firstBlindGamePlayed) {
+				if (!playedInLastGame.contains(player.getUserId())) {
+					if (i == smallIndex) {
+						//
+						// If the player is already the small blind, they only
+						// have to pay another small blind amount
+						//
+						player.subtract(smallBlind.amount());
+						player.setPrevBet(2.0f * smallBlind.amount());
+						r = r + smallBlind.amount();
+					} else if (i == bigIndex) {
+						//
+						// No need to do anything if they are already in the big
+						// blind position.
+						//
+					} else {
+						player.subtract(2.0f * smallBlind.amount());
+						player.setPrevBet(2.0f * smallBlind.amount());
+						r = r + 2.0f * smallBlind.amount();
+					}
+				}
+			}
+		}
+		initialBet = new PokerMoney(2.0f * smallBlind.amount());
+		return r;
+	}
+
 	/**
 	 * 内部投注
+	 * 
 	 * @param curPlayer
 	 * @param betCount
 	 */
@@ -357,7 +334,6 @@ public class TexasHoldEm {
 		curPlayer.betInGame();
 		pot.add(betCount);
 	}
-
 
 	/***********************
 	 * nextAction() determines what happens next. The next action function gets
@@ -400,7 +376,7 @@ public class TexasHoldEm {
 			break;
 		}
 	}
-	
+
 	/***********************
 	 * deal() deals the initial cards. This function must be included in the
 	 * game definition.
@@ -469,6 +445,11 @@ public class TexasHoldEm {
 	 * determining the winner and cleaning up the game.
 	 **/
 	private void show() {
+		int size = playerList.size();
+		playedInLastGame.clear();
+		for (int i = 0; i < size; i++) {
+			playedInLastGame.add(playerList.get(i).getUserId());
+		}
 		calcWinner();
 		showCards();
 		resetPot();
@@ -568,9 +549,9 @@ public class TexasHoldEm {
 		}
 
 		if (numPlayers == 0) {
-            return;
-        }
-		
+			return;
+		}
+
 		if (numPlayers == 1) {
 			int pindex = playerIdxList.get(0);
 			playerList.get(pindex).add(pot.amount());
@@ -683,6 +664,8 @@ public class TexasHoldEm {
 		inGame = false;
 		smallBlindSeat = -1;
 		bigBlindSeat = -1;
+		actionNum = 0;
+		System.out.println("END GAME");
 	}
 
 	/**********************
@@ -693,11 +676,12 @@ public class TexasHoldEm {
 	 *
 	 **/
 	private int firstToBet() {
+		int size = playerList.size();
 		int dealerSeat = playerList.get(dealerIndex).seat;
 		if (actionNum == 1) {
 			int prevSeat = nextSeat(dealerSeat);
 			prevSeat = nextSeat(prevSeat);
-			if (playerList.size() == 2) {
+			if (size == 2) {
 				return getPlayerInSeat(dealerSeat);
 			} else {
 				return getPlayerInSeat(nextSeat(prevSeat));
@@ -708,11 +692,11 @@ public class TexasHoldEm {
 			}
 			int prevSeat = nextSeat(dealerSeat);
 			int pindex = getPlayerInSeat(prevSeat);
-			if ((pindex >= 0) && (pindex < playerList.size())) {
+			if ((pindex >= 0) && (pindex < size)) {
 				while (!(playerList.get(pindex)).in) {
 					prevSeat = nextSeat(prevSeat);
 					pindex = getPlayerInSeat(prevSeat);
-					if ((pindex < 0) || (pindex >= playerList.size())) {
+					if ((pindex < 0) || (pindex >= size)) {
 						return -9;
 					}
 				}
@@ -734,10 +718,16 @@ public class TexasHoldEm {
 		if ((currSeat < 0) || (currSeat >= MAX_PLAYERS)) {
 			return -9;
 		}
+		int leavingListSize = leavingPlayerList.size();
 		for (int i = currSeat + 1; i < MAX_PLAYERS; i++) {
 			int pindex = getPlayerInSeat(i);
 			if (pindex != -9) {
-				if (playerList.get(pindex).in) {
+				boolean playerLeaving = false;
+				if (leavingPlayerList.contains(playerList.get(pindex)
+						.getUserId())) {
+					playerLeaving = true;
+				}
+				if (!playerLeaving) {
 					return i;
 				}
 			}
@@ -745,7 +735,12 @@ public class TexasHoldEm {
 		for (int j = 0; j < currSeat; j++) {
 			int pindex = getPlayerInSeat(j);
 			if (pindex != -9) {
-				if (playerList.get(pindex).in) {
+				boolean playerLeaving = false;
+				if (leavingPlayerList.contains(playerList.get(pindex)
+						.getUserId())) {
+					playerLeaving = true;
+				}
+				if (!playerLeaving) {
 					return j;
 				}
 			}
@@ -1054,6 +1049,9 @@ public class TexasHoldEm {
 						Player player = playerList.get(i);
 						player.potOK = false;
 						if (player.allin) {
+							player.potOK = true;
+						}
+						if (leavingPlayerList.contains(player.getUserId())) {
 							player.potOK = true;
 						}
 					}
@@ -1406,24 +1404,40 @@ public class TexasHoldEm {
 		int roomId = 100015;
 		TexasHoldEm texasHoldEm = new TexasHoldEm(roomId);
 		/*
-		 * texasHoldEm.attend(1L, 0, 100); texasHoldEm.attend(2L, 1, 80);
+		 * texasHoldEm.attend(1L, 0, 100); texasHoldEm.attend(2L, 1, 90);
 		 * texasHoldEm.attend(3L, 2, 90); texasHoldEm.attend(4L, 3, 50);
-		 * 
-		 * texasHoldEm.bet(4, 30); texasHoldEm.bet(1, 50); texasHoldEm.bet(2,
-		 * 40); texasHoldEm.bet(3, 40); texasHoldEm.bet(4, 20);
-		 * texasHoldEm.bet(1, 10); texasHoldEm.bet(2, 10);
-		 * 
-		 * texasHoldEm.bet(2, 20); texasHoldEm.bet(3, 30); texasHoldEm.bet(1,
-		 * 30);
 		 */
+		//第一轮
+		//第一步
 		texasHoldEm.attend(1L, 0);
 		texasHoldEm.attend(2L, 1);
-
-		texasHoldEm.bet(1, 30);
+		texasHoldEm.attend(3L, 2);
+		texasHoldEm.attend(4L, 3);
+		//第二步
+		texasHoldEm.bet(1, 50);
+		texasHoldEm.bet(2, 40);
+		//第三步
 		texasHoldEm.bet(2, 20);
-
-		texasHoldEm.bet(2, 100);
-		texasHoldEm.giveupBet(1);
+		texasHoldEm.bet(1, 20);
+		//第四步
+		texasHoldEm.passBet(2);
+		texasHoldEm.passBet(1);
+		//第五步
+		texasHoldEm.passBet(2);
+		texasHoldEm.passBet(1);
+		//第二轮
+		texasHoldEm.begin();
+		texasHoldEm.bet(1, 40);
+		texasHoldEm.bet(2, 40);
+		texasHoldEm.bet(3, 30);
+		texasHoldEm.bet(4, 20);
+		/*
+		 * texasHoldEm.attend(1L, 0); texasHoldEm.attend(2L, 1);
+		 * 
+		 * texasHoldEm.bet(1, 30); texasHoldEm.bet(2, 20);
+		 * 
+		 * texasHoldEm.bet(2, 100); texasHoldEm.giveupBet(1);
+		 */
 		/*
 		 * texasHoldEm.passBet(2); texasHoldEm.passBet(3);
 		 * texasHoldEm.passBet(4); texasHoldEm.passBet(1);

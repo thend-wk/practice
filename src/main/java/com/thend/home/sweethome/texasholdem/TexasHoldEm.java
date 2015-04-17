@@ -352,20 +352,20 @@ public class TexasHoldEm {
 		}
 
 		switch (actionNum) {
-		case 2:
-			flop();
-			break;
-		case 3:
-			turn();
-			break;
-		case 4:
-			river();
-			break;
-		case 5:
-			show();
-			break;
-		default:
-			break;
+			case 2:
+				flop();
+				break;
+			case 3:
+				turn();
+				break;
+			case 4:
+				river();
+				break;
+			case 5:
+				show();
+				break;
+			default:
+				break;
 		}
 	}
 
@@ -400,6 +400,7 @@ public class TexasHoldEm {
 				}
 			}
 		}
+		//TODO广播
 	}
 
 	/***********************
@@ -415,6 +416,7 @@ public class TexasHoldEm {
 				player.getHand().addSharedCard(c);
 			}
 		}
+		//TODO广播
 	}
 
 	/***********************
@@ -430,6 +432,7 @@ public class TexasHoldEm {
 				player.getHand().addSharedCard(c);
 			}
 		}
+		//TODO广播
 	}
 
 	/**********************
@@ -447,6 +450,7 @@ public class TexasHoldEm {
 		resetPot();
 		nextDealer();
 		nullifyGame();
+		//TODO广播
 	}
 
 	/**********************
@@ -1117,6 +1121,7 @@ public class TexasHoldEm {
 				} else {
 					// TODO
 				}
+				//TODO广播
 			}
 
 			if (betOK) {
@@ -1186,6 +1191,7 @@ public class TexasHoldEm {
 			} else {
 				// TODO
 			}
+			//TODO广播
 		}
 
 		if (true) {
@@ -1255,6 +1261,7 @@ public class TexasHoldEm {
 			} else {
 				// TODO
 			}
+			//TODO广播
 		}
 
 		if (true) {
@@ -1356,6 +1363,7 @@ public class TexasHoldEm {
 			}
 			print();
 		}
+		//TODO 广播
 	}
 
 	/**********************

@@ -65,10 +65,10 @@ public class App
 //        app.doTask();
 //        app.doSerialize();
 //        app.doShort();
-//        app.sendMsg();
+        app.sendMsg();
 //        app.giveCCurrency();
 //        app.analyze();
-        app.doCharacter();
+//        app.doCharacter();
     }
     
     public void doCharacter() {
@@ -247,7 +247,7 @@ public class App
 				List<Header> headers = new ArrayList<Header>();
 				headers.add(new BasicHeader("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8"));
 				headers.add(new BasicHeader("User-Agent","Mozilla/5.0 (Windows NT 5.1; rv:33.0) Gecko/20100101 Firefox/33.0"));
-				headers.add(new BasicHeader("Cookie", "_ntes_nnid=eadbed6008a8e0d2654861ba7ed48b7e,1409044217354; __NETEASE_DC_A_JURASSIC_UID__=737696851@10.120.147.92; P_INFO=bobo_gift@163.com|1417054264|1|bobo|00&99|bej&1416997033&bobo#bej&null#10#0#0|&0||bobo_gift@163.com; ANONYMOUS_TEMP_USERID=temp73027153; CHECK_163BOBO=0; NTES_SESS=msL_FlufYBPHI_Bv2_gFSm4J01C9unLY_7l3kGdDFu5bnO47rnp41.jU1zAsJqkYcixLOYz3sQCEzlHEpCqI2adLmkYc8wSqyvTN44JrKqzLVytbY_o1oyhATJPuRx4J7o3yTAieO5Yju; ANTICSRF=1129fc58a3d0006bc3e45f03bc49bcb4; S_INFO=1417054264|0|2&10##|bobo_gift; NTES_PASSPORT=dwKnhHu6jZK4g0IsgE5uLAaKUP56or.AAMuqxDDpBN4TPdtC9PJt3acy3Gk5sh4HlNC_Cvc.qDW3Ou7A89Ygvnv5P"));
+				headers.add(new BasicHeader("Cookie", "__NETEASE_DC_A_JURASSIC_UID__=8ee7d0b5819353f723c2b6ceb14849d2; _ntes_nnid=71089ae02fd2d2c5a3e5752cd5490735,1423106551042; ANONYMOUS_TEMP_USERID=temp06064325; CHECK_163BOBO=0; P_INFO=bobo_gift@163.com|1428924335|0|bobo|00&99|bej&1427260002&bobo#bej&null#10#0#0|&0||bobo_gift@163.com; NTES_SESS=2tR4vmEYtQZmzhievIqjdfMsDJJXG4BZfuvO9QW7otc_B2k6ZBVkweuhwCEJpaAvj5l82vC1Ji7HCcYHV7aLf.O8dAvjbDIaUQSMkkpZmaC83U4GvxgwgUqESpnPFlkp6koLMMqwK9nsjyF.er1zGHNJB; ANTICSRF=d6165642fd2058c24bfe5997eaf75b14; S_INFO=1428924335|0|2&10##|bobo_gift"));
 				headers.add(new BasicHeader("Referer","http://www.bobo.com/"));
 				String ret = HttpClientUtil.getInstance().execute(url, formEntity, headers.toArray(new Header[0]));
 			    System.out.println(ret);

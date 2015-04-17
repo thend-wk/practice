@@ -35,7 +35,7 @@ public class CouponGenerator {
 			oldCouponHash.put(oldCoupon, 1);
 		}
 		int len = chars.length;
-		while(couponHash.size() < 5000) {
+		while(couponHash.size() < 1000) {
 			StringBuilder sb = new StringBuilder();
 			for(int i=0;i<COUPON_LEN;i++) {
 				int idx = random.nextInt(len);
@@ -47,7 +47,7 @@ public class CouponGenerator {
 				System.out.println(couponHash.size() + " " + coupon);
 			}
 		}
-		FileUtils.writeLines(new File("coupons7.txt"), couponHash.keySet());
+		FileUtils.writeLines(new File("coupons8-200.txt"), couponHash.keySet());
 	}
 
 }

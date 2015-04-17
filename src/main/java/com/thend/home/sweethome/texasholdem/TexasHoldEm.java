@@ -137,6 +137,11 @@ public class TexasHoldEm {
 		if (inGame || playerList.size() < 2) {
 			return false;
 		}
+		// 清除离开用户
+		for (long userId : leavingPlayerList) {
+			dropPlayer(userId);
+		}
+		// 初始化变量
 		inGame = true;
 		deck.shuffle();
 		float bl = blind();
@@ -320,19 +325,6 @@ public class TexasHoldEm {
 		}
 		initialBet = new PokerMoney(2.0f * smallBlind.amount());
 		return r;
-	}
-
-	/**
-	 * 内部投注
-	 * 
-	 * @param curPlayer
-	 * @param betCount
-	 */
-	private void innerBet(Player curPlayer, float betCount) {
-		curPlayer.setBet(betCount);
-		curPlayer.subtract(betCount);
-		curPlayer.betInGame();
-		pot.add(betCount);
 	}
 
 	/***********************
@@ -718,7 +710,6 @@ public class TexasHoldEm {
 		if ((currSeat < 0) || (currSeat >= MAX_PLAYERS)) {
 			return -9;
 		}
-		int leavingListSize = leavingPlayerList.size();
 		for (int i = currSeat + 1; i < MAX_PLAYERS; i++) {
 			int pindex = getPlayerInSeat(i);
 			if (pindex != -9) {
@@ -1293,6 +1284,80 @@ public class TexasHoldEm {
 		print();
 	}
 
+	/**
+	 * 站起
+	 * 
+	 * @param userId
+	 */
+	private void stand(long userId) {
+		int idx = playerIndex(userId);
+		Player p = playerList.get(idx);
+		if (p == null) {
+			System.out.println("bad request!");
+			return;
+		}
+		p.in = false;
+		leavingPlayerList.add(userId);
+		seatPlayerMap.removeKey(p.seat);
+
+		if (currPlayerIndex == idx) {
+			Player currPlayer = playerList.get(currPlayerIndex);
+			int size = playerList.size();
+			boolean potOK = true;
+
+			for (int i = 0; i < size; i++) {
+				Player player = playerList.get(i);
+				if (player.in && !player.potOK && !player.allin) {
+					potOK = false;
+				}
+			}
+
+			if (!potOK) {
+				int prevSeat = currPlayer.seat;
+				boolean foundNext = false;
+				while (!foundNext) {
+					prevSeat = nextSeat(prevSeat);
+					int playerIdx = getPlayerInSeat(prevSeat);
+					Player player = playerList.get(playerIdx);
+					if (player.in && !player.allin) {
+						foundNext = true;
+						currPlayerIndex = getPlayerInSeat(prevSeat);
+					}
+				}
+				if ((actionNum + 1) <= maxActionNum) {
+					// TODO
+				} else {
+					// TODO
+				}
+			}
+
+			if (true) {
+				int allins = 0, ins = 0;
+				for (int i = 0; i < size; i++) {
+					Player player = playerList.get(i);
+					if (player.allin) {
+						allins++;
+					}
+					if (player.in) {
+						ins++;
+					}
+				}
+				if (allins >= (ins - 1)) {
+					if (potOK) {
+						while (actionNum < maxActionNum) {
+							endAction();
+						}
+					}
+				} else {
+					if (potOK) {
+						endAction();
+					}
+				}
+			}
+			print();
+		}
+	}
+
 	/**********************
 	 * endAction() is used to clean up the current round of action and call the
 	 * game defined nextAction() function.
@@ -1407,25 +1472,25 @@ public class TexasHoldEm {
 		 * texasHoldEm.attend(1L, 0, 100); texasHoldEm.attend(2L, 1, 90);
 		 * texasHoldEm.attend(3L, 2, 90); texasHoldEm.attend(4L, 3, 50);
 		 */
-		//第一轮
-		//第一步
+		// 第一轮
+		// 第一步
 		texasHoldEm.attend(1L, 0);
 		texasHoldEm.attend(2L, 1);
 		texasHoldEm.attend(3L, 2);
 		texasHoldEm.attend(4L, 3);
-		//第二步
+		// 第二步
 		texasHoldEm.bet(1, 50);
 		texasHoldEm.bet(2, 40);
-		//第三步
+		// 第三步
 		texasHoldEm.bet(2, 20);
 		texasHoldEm.bet(1, 20);
-		//第四步
+		// 第四步
 		texasHoldEm.passBet(2);
 		texasHoldEm.passBet(1);
-		//第五步
+		// 第五步
 		texasHoldEm.passBet(2);
 		texasHoldEm.passBet(1);
-		//第二轮
+		// 第二轮
 		texasHoldEm.begin();
 		texasHoldEm.bet(1, 40);
 		texasHoldEm.bet(2, 40);
